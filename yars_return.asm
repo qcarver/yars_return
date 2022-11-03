@@ -24,8 +24,8 @@ QuotileColorPtr	word	;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Define constants
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-YAR_HEIGHT = 	9	; Height of Yar Sprite
-QUOTILE_HEIGHT= 9	; Height of Quotile
+YAR_HEIGHT equ 	9	; Height of Yar Sprite
+QUOTILE_HEIGHT equ 9	; Height of Quotile
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;	;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Start our ROM code at memory address $F000
@@ -192,15 +192,19 @@ CheckP0Down:
 	bne CheckP0Left  ; If bit pattern doesn't match, bypass Down Block
         dec YarYPos	
 CheckP0Left:
-	lda #%01000000   ; player0 joystick down
+	lda #%01000000   ; player0 joystick left
 	bit SWCHA
 	bne CheckP0Right  ; If bit pattern doesn't match, bypass Left Block
         dec YarXPos	
+        lda 8		  ; reflect		
+        STA REFP0	  ; 	player 0
 CheckP0Right:
-	lda #%10000000   ; player0 joystick down
+	lda #%10000000   ; player0 joystick right
 	bit SWCHA
 	bne EndInputCheck  ; If bit pattern doesn't match, bypass Right Block
-        inc YarXPos	
+        inc YarXPos
+        lda 0		; unreflect
+        sta REFP0	;	player 0
 EndInputCheck
 
 
