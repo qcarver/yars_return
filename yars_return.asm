@@ -184,7 +184,7 @@ GameVisibleLine
 CheckP0Up:
 	lda #%00010000	; player0 joystick up
 	bit SWCHA	
-	bne CheckP0Down	; If bit patter doesn't bypass UP
+	bne CheckP0Down	; If bit patterin doesn't bypass UP
         inc YarYPos	
 CheckP0Down:
 	lda #%00100000   ; player0 joystick down
@@ -241,27 +241,144 @@ SetObjectXPos subroutine
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 YarSprite:
-Yar_0
-	.byte $00 ; |		|
-	.byte $0E ; |	XXX |
-	.byte $08 ; |	X	|
-	.byte $8D ; |X	XX X|
-	.byte $F2 ; |XXXX  X |
-	.byte $F2 ; |XXXX  X |
-	.byte $8D ; |X	XX X|
-	.byte $08 ; |	X	|
-	.byte $0E ; |	XXX |
-;;YAR_HEIGHT = . - Yar_0		; macro, dot means curr location
-Yar_1  
-	.byte $00 ; |		|
-	.byte $40 ; | X	  |
-	.byte $70 ; | XXX	|
-	.byte $9D ; |X  XXX X|
-	.byte $F2 ; |XXXX  X |
-	.byte $F2 ; |XXXX  X |
-	.byte $9D ; |X  XXX X|
-	.byte $70 ; | XXX	|
-	.byte $40 ; | X	  |
+;Offset Legend
+;JoystickPos 00010000 Heads N	GlyphOffset	16
+;JoystickPos 00100000 Heads S	GlyphOffset	32
+;JoystickPos 01000000 Heads W	GlyphOffset	64
+;JoystickPos 01010000 Heads NW	GlyphOffset	80
+;JoystickPos 01100000 Heads SW	GlyphOffset	96
+;JoystickPos 10000000 Heads E	GlyphOffset	64	and reflect
+;JoystickPos 10010000 Heads NE	GlyphOffset	80	and reflect
+;JoystickPos 10100000 Heads SE	GlyphOffset	96	and reflect
+        .byte $00 ; |        |
+	.byte $24 ; |  X  X  |
+	.byte $99 ; |X  XX  X|
+	.byte $BD ; |X XXXX X|	
+	.byte $A5 ; |X X  X X|		4th
+	.byte $7E ; | XXXXXX |
+	.byte $18 ; |   XX   |
+	.byte $FF ; |XXXXXXXX|
+	.byte $DB ; |XX XX XX|		8th
+	.byte $18 ; |   XX   |
+        .byte $55 ;
+        	.byte $AA ;
+        .byte $55 ;
+        .byte $AA ;
+        .byte $55 ;
+        	.byte $AA ;
+        .byte $55 ;
+YarN
+         .byte $00 ; |........|
+         .byte $24 ; |..X..X..|
+         .byte $99 ; |X..XX..X|
+         .byte $A5 ; |X.X..X.X|
+         .byte $E7 ; |XXX..XXX|
+         .byte $18 ; |...XX...|
+         .byte $18 ; |...XX...|
+         .byte $18 ; |...XX...|
+         .byte $3C ; |..XXXX..|
+        	.byte $AA ;
+        .byte $55 ;
+        .byte $AA ;
+        .byte $55 ;
+        	.byte $AA ;
+        .byte $55 ;
+   .byte $00 ; |........|
+   .byte $3C ; |..XXXX..|
+   .byte $DB ; |XX.XX.XX|
+   .byte $5A ; |.X.XX.X.|
+   .byte $7E ; |.XXXXXX.|
+   .byte $24 ; |..X..X..|
+   .byte $24 ; |..X..X..|
+   .byte $18 ; |...XX...|
+   .byte $24 ; |..X..X..|	;31
+        .byte $AA ;
+        	.byte $55 ;
+        .byte $AA ;
+        .byte $55 ;
+        .byte $AA ;
+        .byte $55 ;
+        	.byte $AA ;
+        .byte $55 ;
+        .byte $AA ;
+        .byte $55 ;
+        	.byte $AA ;
+        .byte $55 ;
+        .byte $AA ;
+        .byte $55 ;
+        	.byte $AA ;
+        .byte $55 ;
+        .byte $AA ;
+        .byte $55 ;
+        	.byte $AA ;
+        .byte $55 ;
+        .byte $AA ;
+        .byte $55 ;
+        	.byte $AA ;
+        .byte $55 ;
+        .byte $AA ;
+        .byte $55 ;
+        	.byte $AA ;
+        .byte $55 ;
+        .byte $AA ;
+        .byte $55 ;
+        	.byte $AA ;
+        .byte $55 ;		;63
+   	.byte $00 ; |........|
+   	.byte $02 ; |......X.|
+   	.byte $0E ; |....XXX.|
+   	.byte $99 ; |X..XX..X|
+   	.byte $67 ; |.XX..XXX|
+   	.byte $67 ; |.XX..XXX|
+   	.byte $99 ; |X..XX..X|
+   	.byte $0E ; |....XXX.|
+   	.byte $02 ; |......X.|
+           .byte $AA ;
+        .byte $55 ;
+        .byte $AA ;
+        .byte $55 ;
+                .byte $AA ;
+        .byte $55 ;
+        .byte $AA ;
+        .byte $55 ;
+               .byte $AA ;
+        .byte $55 ;
+        .byte $AA ;
+        .byte $55 ;		;80
+           .byte $00 ; |........|
+           .byte $20 ; |..X.....|
+           .byte $30 ; |..XX....|
+           .byte $ED ; |XXX.XX.X|
+           .byte $47 ; |.X...XXX|
+           .byte $2C ; |..X.XX..|
+           .byte $3F ; |..XXXXXX|
+           .byte $17 ; |...X.XXX|
+           .byte $36 ; |..XX.XX.|
+                           .byte $AA ;
+        .byte $55 ;
+        .byte $AA ;
+        .byte $55 ;
+               .byte $AA ;
+        .byte $55 ;
+        .byte $AA ;
+        .byte $55 ;
+                        .byte $AA ;
+        .byte $55 ;
+        .byte $AA ;
+        .byte $55 ;
+               .byte $AA ;
+        .byte $55 ;
+        .byte $AA ;
+        .byte $55 ;	;96
+           .byte $00 ; |........|
+   .byte $36 ; |..XX.XX.|
+   .byte $17 ; |...X.XXX|
+   .byte $3F ; |..XXXXXX|
+   .byte $2C ; |..X.XX..|
+   .byte $47 ; |.X...XXX|
+   .byte $ED ; |XXX.XX.X|
+   .byte $30 ; |..XX....|
+   .byte $20 ; |..X.....|
 
 
 QuotileSprite
