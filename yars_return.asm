@@ -20,12 +20,19 @@ YarSpritePtr    word	; Pointers
 YarColorPtr     word	;
 QuotileSpritePtr	word	;
 QuotileColorPtr	word	;
+scratch		byte    ;
+YarAnimOffset   byte    ;
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Define constants
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 YAR_HEIGHT equ 	9	; Height of Yar Sprite
 QUOTILE_HEIGHT equ 9	; Height of Quotile
+YarN equ 9
+YarS equ 0
+YarW equ 18
+YarNW equ 27
+YarSW equ 36
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;	;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Start our ROM code at memory address $F000
@@ -138,8 +145,10 @@ GameVisibleLine
 	bcc .DrawYarSprite
 	lda #0		; else: set  empty sprite line
 
-.DrawYarSprite
-	tay		; hint: Y only indirect register
+.DrawYarSprite        
+	clc		;add
+	adc YarAnimOffset	; Yar animation offset
+        tay
 	lda (YarSpritePtr),y	;ld Sprite at offset
 	;;sta WSYNC	; wait for scanline
 	sta GRP0	; set graphics for Yar
@@ -181,30 +190,39 @@ GameVisibleLine
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Process joystick input for player0 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
 CheckP0Up:
 	lda #%00010000	; player0 joystick up
 	bit SWCHA	
 	bne CheckP0Down	; If bit patterin doesn't bypass UP
         inc YarYPos	
+        lda YarN	;	set Yar glpyh
+        sta YarAnimOffset ;		to North Facing
 CheckP0Down:
 	lda #%00100000   ; player0 joystick down
 	bit SWCHA
 	bne CheckP0Left  ; If bit pattern doesn't match, bypass Down Block
         dec YarYPos	
+        lda YarS	;	set Yar glpyh
+        sta YarAnimOffset ;		to South Facing
 CheckP0Left:
 	lda #%01000000   ; player0 joystick left
 	bit SWCHA
 	bne CheckP0Right  ; If bit pattern doesn't match, bypass Left Block
         dec YarXPos	
-        lda 8		  ; reflect		
+        lda YarW	;	set Yar glpyh
+        sta YarAnimOffset ;		to North Facing
+        lda 0		  ; reflect		
         STA REFP0	  ; 	player 0
 CheckP0Right:
 	lda #%10000000   ; player0 joystick right
 	bit SWCHA
 	bne EndInputCheck  ; If bit pattern doesn't match, bypass Right Block
         inc YarXPos
-        lda 0		; unreflect
-        sta REFP0	;	player 0
+        lda YarW	;	set Yar glpyh
+        sta YarAnimOffset ;		to North Facing
+        lda 8		  ; reflect		
+        STA REFP0	  ; 	player 0
 EndInputCheck
 
 
@@ -250,6 +268,57 @@ YarSprite:
 ;JoystickPos 10000000 Heads E	GlyphOffset	64	and reflect
 ;JoystickPos 10010000 Heads NE	GlyphOffset	80	and reflect
 ;JoystickPos 10100000 Heads SE	GlyphOffset	96	and reflect
+;YarN
+   .byte $00 ; |........|
+   .byte $24 ; |..X..X..|
+   .byte $18 ; |...XX...|
+   .byte $24 ; |..X..X..|
+   .byte $24 ; |..X..X..|
+   .byte $7E ; |.XXXXXX.|
+   .byte $5A ; |.X.XX.X.|
+   .byte $DB ; |XX.XX.XX|
+   .byte $3C ; |..XXXX..|
+;YarS				+9
+   .byte $00 ; |........|	
+   .byte $3C ; |..XXXX..|
+   .byte $DB ; |XX.XX.XX|
+   .byte $5A ; |.X.XX.X.|
+   .byte $7E ; |.XXXXXX.|
+   .byte $24 ; |..X..X..|
+   .byte $24 ; |..X..X..|
+   .byte $18 ; |...XX...|
+   .byte $24 ; |..X..X..|	
+;YarW				+18
+   	.byte $00 ; |........|
+   	.byte $02 ; |......X.|
+   	.byte $0E ; |....XXX.|
+   	.byte $99 ; |X..XX..X|
+   	.byte $67 ; |.XX..XXX|
+   	.byte $67 ; |.XX..XXX|
+   	.byte $99 ; |X..XX..X|
+   	.byte $0E ; |....XXX.|
+   	.byte $02 ; |......X.|
+;YarNW				+27
+           .byte $00 ; |........|
+           .byte $20 ; |..X.....|
+           .byte $30 ; |..XX....|
+           .byte $ED ; |XXX.XX.X|
+           .byte $47 ; |.X...XXX|
+           .byte $2C ; |..X.XX..|
+           .byte $3F ; |..XXXXXX|
+           .byte $17 ; |...X.XXX|
+           .byte $36 ; |..XX.XX.|
+;YarSW   			+36
+				
+   .byte $36 ; |..XX.XX.|
+   .byte $17 ; |...X.XXX|
+   .byte $3F ; |..XXXXXX|
+   .byte $2C ; |..X.XX..|
+   .byte $47 ; |.X...XXX|
+   .byte $ED ; |XXX.XX.X|
+   .byte $30 ; |..XX....|
+   .byte $20 ; |..X.....|
+           .byte $00 ; |........|
         .byte $00 ; |        |
 	.byte $24 ; |  X  X  |
 	.byte $99 ; |X  XX  X|
@@ -260,15 +329,7 @@ YarSprite:
 	.byte $FF ; |XXXXXXXX|
 	.byte $DB ; |XX XX XX|		8th
 	.byte $18 ; |   XX   |
-        .byte $55 ;
-        	.byte $AA ;
-        .byte $55 ;
-        .byte $AA ;
-        .byte $55 ;
-        	.byte $AA ;
-        .byte $55 ;
-YarN
-         .byte $00 ; |........|
+        .byte $00 ; |........|		16th
          .byte $24 ; |..X..X..|
          .byte $99 ; |X..XX..X|
          .byte $A5 ; |X.X..X.X|
@@ -277,108 +338,7 @@ YarN
          .byte $18 ; |...XX...|
          .byte $18 ; |...XX...|
          .byte $3C ; |..XXXX..|
-        	.byte $AA ;
-        .byte $55 ;
-        .byte $AA ;
-        .byte $55 ;
-        	.byte $AA ;
-        .byte $55 ;
-   .byte $00 ; |........|
-   .byte $3C ; |..XXXX..|
-   .byte $DB ; |XX.XX.XX|
-   .byte $5A ; |.X.XX.X.|
-   .byte $7E ; |.XXXXXX.|
-   .byte $24 ; |..X..X..|
-   .byte $24 ; |..X..X..|
-   .byte $18 ; |...XX...|
-   .byte $24 ; |..X..X..|	;31
-        .byte $AA ;
-        	.byte $55 ;
-        .byte $AA ;
-        .byte $55 ;
-        .byte $AA ;
-        .byte $55 ;
-        	.byte $AA ;
-        .byte $55 ;
-        .byte $AA ;
-        .byte $55 ;
-        	.byte $AA ;
-        .byte $55 ;
-        .byte $AA ;
-        .byte $55 ;
-        	.byte $AA ;
-        .byte $55 ;
-        .byte $AA ;
-        .byte $55 ;
-        	.byte $AA ;
-        .byte $55 ;
-        .byte $AA ;
-        .byte $55 ;
-        	.byte $AA ;
-        .byte $55 ;
-        .byte $AA ;
-        .byte $55 ;
-        	.byte $AA ;
-        .byte $55 ;
-        .byte $AA ;
-        .byte $55 ;
-        	.byte $AA ;
-        .byte $55 ;		;63
-   	.byte $00 ; |........|
-   	.byte $02 ; |......X.|
-   	.byte $0E ; |....XXX.|
-   	.byte $99 ; |X..XX..X|
-   	.byte $67 ; |.XX..XXX|
-   	.byte $67 ; |.XX..XXX|
-   	.byte $99 ; |X..XX..X|
-   	.byte $0E ; |....XXX.|
-   	.byte $02 ; |......X.|
-           .byte $AA ;
-        .byte $55 ;
-        .byte $AA ;
-        .byte $55 ;
-                .byte $AA ;
-        .byte $55 ;
-        .byte $AA ;
-        .byte $55 ;
-               .byte $AA ;
-        .byte $55 ;
-        .byte $AA ;
-        .byte $55 ;		;80
-           .byte $00 ; |........|
-           .byte $20 ; |..X.....|
-           .byte $30 ; |..XX....|
-           .byte $ED ; |XXX.XX.X|
-           .byte $47 ; |.X...XXX|
-           .byte $2C ; |..X.XX..|
-           .byte $3F ; |..XXXXXX|
-           .byte $17 ; |...X.XXX|
-           .byte $36 ; |..XX.XX.|
-                           .byte $AA ;
-        .byte $55 ;
-        .byte $AA ;
-        .byte $55 ;
-               .byte $AA ;
-        .byte $55 ;
-        .byte $AA ;
-        .byte $55 ;
-                        .byte $AA ;
-        .byte $55 ;
-        .byte $AA ;
-        .byte $55 ;
-               .byte $AA ;
-        .byte $55 ;
-        .byte $AA ;
-        .byte $55 ;	;96
-           .byte $00 ; |........|
-   .byte $36 ; |..XX.XX.|
-   .byte $17 ; |...X.XXX|
-   .byte $3F ; |..XXXXXX|
-   .byte $2C ; |..X.XX..|
-   .byte $47 ; |.X...XXX|
-   .byte $ED ; |XXX.XX.X|
-   .byte $30 ; |..XX....|
-   .byte $20 ; |..X.....|
+
 
 
 QuotileSprite
