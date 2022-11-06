@@ -152,7 +152,7 @@ GameVisibleLine
 	lda (YarSpritePtr),y	;ld Sprite at offset
 	;;sta WSYNC	; wait for scanline
 	sta GRP0	; set graphics for Yar
-	lda (YarColorPtr),y	;load color
+	lda #$0E	;load color
 	sta COLUP0	; set color of Yar
 
 .AreWeInsideQuotileSprite:
@@ -194,7 +194,7 @@ GameVisibleLine
 CheckP0Up:
 	lda #%00010000	; player0 joystick up
 	bit SWCHA	
-	bne CheckP0Down	; If bit patterin doesn't bypass UP
+	bne CheckP0Down	; If bit pattern doesn't bypass UP
         inc YarYPos	
         lda YarN	;	set Yar glpyh
         sta YarAnimOffset ;		to North Facing
@@ -224,6 +224,19 @@ CheckP0Right:
         lda 8		  ; reflect		
         STA REFP0	  ; 	player 0
 EndInputCheck
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; Calculations to update Quotile position for next frame
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+	lda QuotileYPos
+        clc
+        cmp #96
+        bmi IncrementQuotile	;; if QuotleYPos < 96
+        lda 0			;; else load 0	
+        sta QuotileYPos		;;        into QuotileYPos
+IncrementQuotile
+	inc QuotileYPos
+    
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
