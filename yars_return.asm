@@ -237,9 +237,11 @@ EndInputCheck
         bmi IncrementQuotile	;; if QuotleYPos < 96
         lda 0			;; else load 0	
         sta QuotileYPos		;;        into QuotileYPos
-	jsr GetRndQPos		;; jump Quotile to a new Horizontal location 	
+	jsr GetRndByte		;; Get Rand byte and put in A 
+	lsr			;; 	Divide rnd byte by two (hint Hrez)
+	sta QuotileXPos		;;		Store rnd in QuotileXPos
 IncrementQuotile
-	inc QuotileYPos
+	inc QuotileYPos         ;; Typical
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Loop back to start a brand new frame
@@ -273,7 +275,7 @@ SetObjectXPos subroutine
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Generate a random number using a Linear-Feedback Shift Register  
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-GetRndQPos subroutine
+GetRndByte subroutine
 	lda Random	; Load starting random seed
 	asl 		; <<1
 	eor Random	; xor
@@ -284,7 +286,6 @@ GetRndQPos subroutine
 	eor Random
 	asl
 	rol Random	; performs a series of shifts and bit operations
-	sta QuotileXPos ; put the random number in Quotiles X coord
 	rts 
 
 
