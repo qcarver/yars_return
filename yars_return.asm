@@ -22,7 +22,7 @@ QuotileSpritePtr	word	;
 QuotileColorPtr	word	;
 scratch		byte    ;
 YarAnimOffset   byte    ;
-
+Random		byte	;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Define constants
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -54,6 +54,8 @@ Reset:
 	sta QuotileXPos 
 	lda #8
 	sta QuotileYPos
+	lda #69
+	sta Random
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Initialize the pointers to LUTs 
@@ -187,6 +189,7 @@ GameVisibleLine
 	lda #0
 	sta VBLANK				; turn off VBLANK
 
+
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Process joystick input for player0 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -234,10 +237,9 @@ EndInputCheck
         bmi IncrementQuotile	;; if QuotleYPos < 96
         lda 0			;; else load 0	
         sta QuotileYPos		;;        into QuotileYPos
+	jsr GetRndQPos		;; jump Quotile to a new Horizontal location 	
 IncrementQuotile
 	inc QuotileYPos
-    
-
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Loop back to start a brand new frame
@@ -265,6 +267,25 @@ SetObjectXPos subroutine
 	sta HMP0,Y		; store the fine offset to the correct HMxx
 	sta RESP0,Y		; fix object position in 15 step increment
 	rts			; return	
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; Subroutine to put a random number in Quotile X
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; Generate a random number using a Linear-Feedback Shift Register  
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+GetRndQPos subroutine
+	lda Random	; Load starting random seed
+	asl 		; <<1
+	eor Random	; xor
+	asl		; <<1
+	eor Random	; xor
+	asl
+	asl
+	eor Random
+	asl
+	rol Random	; performs a series of shifts and bit operations
+	sta QuotileXPos ; put the random number in Quotiles X coord
+	rts 
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
