@@ -21,14 +21,22 @@ YarColorPtr     word	;
 QuotileSpritePtr	word	;
 QuotileColorPtr	word	;
 BgColor		byte	;
-scratch		byte    ;
+Scratch		byte    ;
 YarAnimOffset   byte    ;
 Random		byte	;
+Score		byte    ; w/ Bomber code, impt that		    2digitvalue 
+Timer		byte	;        Score and timer be side by side    2digitvalue
+ScoreSprite     byte    ; store the score bit patter
+TimerSprite     byte    ; store the timer bit pattern
+OnesDigitOffset word    ; LUT offset for 1's digit
+TensDigitOffset word    ; LUT offset for 10's digit
+
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Define constants
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 YAR_HEIGHT equ 	9	; Height of Yar Sprite
 QUOTILE_HEIGHT equ 9	; Height of Quotile
+DIGITS_HEIGHT equ 5	; Scoreboard digit
 YarN equ 9
 YarS equ 0
 YarW equ 18
@@ -49,6 +57,9 @@ Reset:
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 	lda #60
 	sta YarYPos
+	lda #0
+	sta Score
+	sta Timer
 	lda #80
 	sta YarXPos
 	lda #52
@@ -59,6 +70,7 @@ Reset:
 	sta Random
 	lda #$A0
 	sta BgColor
+
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Initialize the pointers to LUTs 
@@ -89,6 +101,21 @@ Reset:
 StartFrame:
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; Display VSYNC and VBLANK
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+	lda #2
+	sta VBLANK		; turn on VBlank
+	sta VSYNC		; turn on VSYNC
+	REPEAT 3
+		sta WSYNC	; display 3 recommended lines of VSYNC
+	REPEND
+	lda #0
+	sta VSYNC		; turn off VSYNC
+	REPEAT 33		; instead of 37 
+		sta WSYNC	;i display VBLANK lines
+	REPEND
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Calculations and tasks performed in the pre-VBlank 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 	lda YarXPos		; this will be the A parameter for the subr
@@ -99,24 +126,78 @@ StartFrame:
 	ldy #1
 	jsr SetObjectXPos	; set player1 horizontal position
 
+	jsr CalculateDigitOffset; calc scoreboard digits offset
+
 	sta WSYNC
 	sta HMOVE		; apply the offsets
 
+	sta VBLANK		; turn off VBLANK
+
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;; Display VSYNC and VBLANK
+;; Display the scoreboard lines 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-	lda #2
-	sta VBLANK
-	sta VSYNC
-	REPEAT 3
-		sta WSYNC
-	REPEND
-	lda #0
-	sta VSYNC
-	REPEAT 37
-		sta WSYNC
-	REPEND
-	sta VBLANK
+	lda #0			; clear TIA registers
+	sta PF0			;	for
+	sta PF1			;		each
+	sta PF2			;			frame
+	sta GRP0		;				...
+	sta GRP1		;					...
+	lda #$1C		; Use white Playfield color 
+	sta COLUPF		;			to draw digits
+	lda #%00000000		; Disable Playfield
+	sta CTRLPF		; 			Reflection
+
+	ldx #DIGITS_HEIGHT	; decrememnting loop, start with (5)
+.ScoreDigitLoop:
+	ldy TensDigitOffset	; get the tens digit offset for the score
+	lda Digits,y		; load the bitpattern returned from the LUT
+	and #$F0		; mask out the graphics for the ones digit
+	sta ScoreSprite		; save the score tens digit pattern in a variable
+
+	ldy OnesDigitOffset	; get the ones digit bit pattern offset
+	lda Digits,Y
+	and #$0F		; mask out the graphics for the tens digit
+	ora ScoreSprite		; merge bit pattern with the other digit
+
+	sta WSYNC		; wait for the next line
+	sta PF1			; update the playfield to display score sprite
+
+	ldy TensDigitOffset+1	; get the tens digit offset for the score
+	lda Digits,y		; load the bitpattern returned from the LUT
+	and #$F0		; mask out the graphics for the ones digit
+	sta TimerSprite		; save the score tens digit pattern in a variable
+
+	ldy OnesDigitOffset+1	; get the ones digit bit pattern offset
+	lda Digits,Y
+	and #$0F		; mask out the graphics for the tens digit
+	ora TimerSprite		; merge bit pattern with the other digit
+	sta TimerSprite		; save it
+
+	jsr Sleep12Cycles
+
+	sta PF1			; update the playfield for the timer display
+	
+	ldy ScoreSprite		; preload next scanline
+	sta WSYNC		; wait for next scanline
+
+	sta PF1			; update the playfield for the score display
+
+	inc TensDigitOffset 
+	inc TensDigitOffset+1
+	inc OnesDigitOffset
+	inc OnesDigitOffset+1
+
+	jsr Sleep12Cycles	;probly don't need this on last write of timer 
+
+	dex			; X-- hint: draw next line down of score pattern
+	sta PF1			; update the playfield to display score sprite
+	bne	.ScoreDigitLoop ; do while X > 0
+
+
+	sta WSYNC 
+
+
+	
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Visible Frame: display 192 scanlines
@@ -304,6 +385,142 @@ GetRndByte subroutine
 	rol Random	; performs a series of shifts and bit operations
 	rts 
 
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; Subroutine to handle scoreboard digits to be displayed on the screen 
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; get offsest addr of  5 pixels tall digits. so step will be (digit * 5) 
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+CalculateDigitOffset subroutine
+	ldx #1		; X register is the loop counter
+.PrepareScoreLoop	; this will loop twice, once for score, 2nd for timer
+	lda Score,X 	; load score + x (digits + 1//timer or + 0//score)
+	;;prepare lo-digit
+	and #%00001111  ; mask tens part of digits or score, gets ones part
+	sta Scratch	; save the value of A into Temp
+	asl		; Multiply
+	asl		; 		by
+	adc Scratch	; 			five  	(hint: n*2*2+n) 
+	sta OnesDigitOffset,x	; save A in OnesDigitOffset + 1
+		
+	lda Score,x	; load A w/ x = 1 or timer
+	;;prepare hi digit
+	and #$F0	; mask out the ones digit
+	lsr		; divide value of hi digit by 16
+	lsr		; 	then multiply 	
+	sta Scratch	;		by 5 to get	
+	lsr		;			it's offset	
+	lsr		;				into LUT	
+	adc Scratch	; hint: (add n/4 to n/16 same as (n/16)*5
+	sta TensDigitOffset,x ; store A in TensDigitOffset or ""+1
+
+	dex		; x--
+	bpl .PrepareScoreLoop	;do while x is positive
+	rts
+
+;; Subroutine to waste 12 cycles
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; jsr takes 6 cycles
+;; rts takes 6 cycles
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+Sleep12Cycles subroutine
+    rts
+
+Digits:
+    .byte %01110111          ; ### ###
+    .byte %01010101          ; # # # #
+    .byte %01010101          ; # # # #
+    .byte %01010101          ; # # # #
+    .byte %01110111          ; ### ###
+
+    .byte %00010001          ;   #   #
+    .byte %00010001          ;   #   #
+    .byte %00010001          ;   #   #
+    .byte %00010001          ;   #   #
+    .byte %00010001          ;   #   #
+
+    .byte %01110111          ; ### ###
+    .byte %00010001          ;   #   #
+    .byte %01110111          ; ### ###
+    .byte %01000100          ; #   #
+    .byte %01110111          ; ### ###
+
+    .byte %01110111          ; ### ###
+    .byte %00010001          ;   #   #
+    .byte %00110011          ;  ##  ##
+    .byte %00010001          ;   #   #
+    .byte %01110111          ; ### ###
+
+    .byte %01010101          ; # # # #
+    .byte %01010101          ; # # # #
+    .byte %01110111          ; ### ###
+    .byte %00010001          ;   #   #
+    .byte %00010001          ;   #   #
+
+    .byte %01110111          ; ### ###
+    .byte %01000100          ; #   #
+    .byte %01110111          ; ### ###
+    .byte %00010001          ;   #   #
+    .byte %01110111          ; ### ###
+
+    .byte %01110111          ; ### ###
+    .byte %01000100          ; #   #
+    .byte %01110111          ; ### ###
+    .byte %01010101          ; # # # #
+    .byte %01110111          ; ### ###
+
+    .byte %01110111          ; ### ###
+    .byte %00010001          ;   #   #
+    .byte %00010001          ;   #   #
+    .byte %00010001          ;   #   #
+    .byte %00010001          ;   #   #
+
+    .byte %01110111          ; ### ###
+    .byte %01010101          ; # # # #
+    .byte %01110111          ; ### ###
+    .byte %01010101          ; # # # #
+    .byte %01110111          ; ### ###
+
+    .byte %01110111          ; ### ###
+    .byte %01010101          ; # # # #
+    .byte %01110111          ; ### ###
+    .byte %00010001          ;   #   #
+    .byte %01110111          ; ### ###
+
+    .byte %00100010          ;  #   #
+    .byte %01010101          ; # # # #
+    .byte %01110111          ; ### ###
+    .byte %01010101          ; # # # #
+    .byte %01010101          ; # # # #
+
+    .byte %01110111          ; ### ###
+    .byte %01010101          ; # # # #
+    .byte %01100110          ; ##  ##
+    .byte %01010101          ; # # # #
+    .byte %01110111          ; ### ###
+
+    .byte %01110111          ; ### ###
+    .byte %01000100          ; #   #
+    .byte %01000100          ; #   #
+    .byte %01000100          ; #   #
+    .byte %01110111          ; ### ###
+
+    .byte %01100110          ; ##  ##
+    .byte %01010101          ; # # # #
+    .byte %01010101          ; # # # #
+    .byte %01010101          ; # # # #
+    .byte %01100110          ; ##  ##
+
+    .byte %01110111          ; ### ###
+    .byte %01000100          ; #   #
+    .byte %01110111          ; ### ###
+    .byte %01000100          ; #   #
+    .byte %01110111          ; ### ###
+
+    .byte %01110111          ; ### ###
+    .byte %01000100          ; #   #
+    .byte %01100110          ; ##  ##
+    .byte %01000100          ; #   #
+    .byte %01000100          ; #   #
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Player Graphic and Color
