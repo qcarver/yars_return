@@ -20,6 +20,7 @@ YarSpritePtr    word	; Pointers
 YarColorPtr     word	;
 QuotileSpritePtr	word	;
 QuotileColorPtr	word	;
+BgColor		byte	;
 scratch		byte    ;
 YarAnimOffset   byte    ;
 Random		byte	;
@@ -56,6 +57,8 @@ Reset:
 	sta QuotileYPos
 	lda #69
 	sta Random
+	lda #$A0
+	sta BgColor
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Initialize the pointers to LUTs 
@@ -80,14 +83,14 @@ Reset:
 	lda #>QuotileColor
 	sta QuotileColorPtr+1	;hi-byte for address of Quotile sprite	
 
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Start the main display loop and frame rendering
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 StartFrame:
 
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Calculations and tasks performed in the pre-VBlank 
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 	lda YarXPos		; this will be the A parameter for the subr
 	ldy #0			; this will be the object type paramter 
 	jsr SetObjectXPos	; set Yar horizontal position, call subroutine
@@ -99,9 +102,9 @@ StartFrame:
 	sta WSYNC
 	sta HMOVE		; apply the offsets
 
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Display VSYNC and VBLANK
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 	lda #2
 	sta VBLANK
 	sta VSYNC
@@ -115,17 +118,18 @@ StartFrame:
 	REPEND
 	sta VBLANK
 
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Visible Frame: display 192 scanlines
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 GameVisibleLine
-	ldy #$A0		; make sky...	
-	sty COLUBK		; bg color blue 
+	ldy BgColor		; load bg color
+	sty COLUBK		;           into bg color register
  
 	ldx #96		; row cnt:192:1,96:2line kernel 
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Visible Row
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 .GameLineLoop:
         ;;BEGIN: Draw Playfield______________
 	lda PFColors,x		; get color...
@@ -242,6 +246,18 @@ EndInputCheck
 	sta QuotileXPos		;;		Store rnd in QuotileXPos
 IncrementQuotile
 	inc QuotileYPos         ;; Typical
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; Check collision between player0 and the playfield 
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+	ldy #$A0	; Assume sky will be blue (no collision)
+	lda #%10000000	; hi bit of CXPPMM 
+	bit CXPPMM	;	informs of a Player0, Player1 collision
+	beq BlueSky	; If There is no colision jump to Blue sky
+	ldy #$30		; else red 
+BlueSky
+	sty BgColor	; Blue or Red gets stored in our Background color field
+	sta CXCLR	; Reset all collision flags
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Loop back to start a brand new frame
