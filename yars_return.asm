@@ -1,3 +1,8 @@
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; 2 line kernal score examples and more pinched from https://pikuma.com/courses
+;;	qcarver@gmail.com November of 2022 
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
 	processor 6502
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -48,7 +53,6 @@ YarSW equ 36
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
         seg Code	
 	org $F000
-
 Reset:
 	CLEAN_START
 
@@ -71,7 +75,6 @@ Reset:
 	sta Random
 	lda #$A0
 	sta BgColor
-
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Initialize the pointers to LUTs 
@@ -193,7 +196,6 @@ StartFrame:
 	
 	sta WSYNC
 	
-
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Visible Frame: display 192 scanlines
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -220,40 +222,40 @@ GameVisibleLine
 	;;END: Draw Playfield________________
 
 .AreWeInsideYarSprite:
-	txa		; transfer linePos to A
-	sec		; sec (before subtract)
-	sbc YarYPos	; SpriteY - linepos
-	cmp YAR_HEIGHT	; w/in height of sprite?
+	txa			; transfer linePos to A
+	sec			; sec (before subtract)
+	sbc YarYPos		; SpriteY - linepos
+	cmp YAR_HEIGHT		; w/in height of sprite?
 	bcc .DrawYarSprite
-	lda #0		; else: set  empty sprite line
+	lda #0			; else: set  empty sprite line
 
 .DrawYarSprite        
-	clc		;add
+	clc			;add
 	adc YarAnimOffset	; Yar animation offset
         tay
 	lda (YarSpritePtr),y	;ld Sprite at offset
-	;;sta WSYNC	; wait for scanline
-	sta GRP0	; set graphics for Yar
-	lda #$0E	;load color
-	sta COLUP0	; set color of Yar
+	;sta WSYNC		; wait for scanline
+	sta GRP0		; set graphics for Yar
+	lda #$0E		;load color
+	sta COLUP0		; set color of Yar
 
 .AreWeInsideQuotileSprite:
-	txa		; transfer linePos to A
-	sec		; sec (before subtract)
-	sbc QuotileYPos	; SpriteY - linepos
-	cmp QUOTILE_HEIGHT	; w/in height of sprite?
+	txa			; transfer linePos to A
+	sec			; sec (before subtract)
+	sbc QuotileYPos		; SpriteY - linepos
+	cmp QUOTILE_HEIGHT		; w/in height of sprite?
 	bcc .DrawQuotileSprite
-	lda #0		; else: set  empty sprite line
+	lda #0			; else: set  empty sprite line
 
 .DrawQuotileSprite
-	tay		; hint: Y only indirect register
-	lda #5		; b101 stretches sprite Horizon
+	tay			; hint: Y only indirect register
+	lda #5			; b101 stretches sprite Horizon
 	sta NUSIZ1
-	lda (QuotileSpritePtr),y	;ld Sprite at offset
-	sta WSYNC	; wait for scanline
-	sta GRP1	; set graphics for Quotile
-	lda (QuotileColorPtr),y	;load color
-	sta COLUP1	; set color of Quotile
+	lda (QuotileSpritePtr),y		;ld Sprite at offset
+	sta WSYNC		; wait for scanline
+	sta GRP1		; set graphics for Quotile
+	lda (QuotileColorPtr),y		;load color
+	sta COLUP1		; set color of Quotile
 
 	dex			; x--
 	bne .GameLineLoop
@@ -269,47 +271,46 @@ GameVisibleLine
 	lda #0
 	sta VBLANK				; turn off VBLANK
 
-
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Process joystick input for player0 
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 CheckP0Up:
-	lda #%00010000	; player0 joystick up
+	lda #%00010000		; player0 joystick up
 	bit SWCHA	
-	bne CheckP0Down	; If bit pattern doesn't bypass UP
+	bne CheckP0Down		; If bit pattern doesn't bypass UP
         inc YarYPos	
-        lda YarN	;	set Yar glpyh
-        sta YarAnimOffset ;		to North Facing
+        lda YarN		;	set Yar glpyh
+        sta YarAnimOffset 	;		to North Facing
 CheckP0Down:
-	lda #%00100000   ; player0 joystick down
+	lda #%00100000   	; player0 joystick down
 	bit SWCHA
-	bne CheckP0Left  ; If bit pattern doesn't match, bypass Down Block
-        lda YarS	;	set Yar glpyh
-        sta YarAnimOffset ;		to South Facing
-	lda #6		 ; Yar can't 
-	clc		;	fly below
-	cmp YarYPos	;		the deck
-	bpl CheckP0Left  ; skip decrement if he tries to 
+	bne CheckP0Left  	; If bit pattern doesn't match, bypass Down Block
+        lda YarS		;	set Yar glpyh
+        sta YarAnimOffset 	;		to South Facing
+	lda #6		 	; Yar can't 
+	clc			;	fly below
+	cmp YarYPos		;		the deck
+	bpl CheckP0Left  	; skip decrement if he tries to 
         dec YarYPos	
 CheckP0Left:
-	lda #%01000000   ; player0 joystick left
+	lda #%01000000   	; player0 joystick left
 	bit SWCHA
-	bne CheckP0Right  ; If bit pattern doesn't match, bypass Left Block
+	bne CheckP0Right  	; If bit pattern doesn't match, bypass Left Block
         dec YarXPos	
-        lda YarW	;	set Yar glpyh
-        sta YarAnimOffset ;		to North Facing
-        lda 0		  ; reflect		
-        STA REFP0	  ; 	player 0
+        lda YarW		;	set Yar glpyh
+        sta YarAnimOffset 	;		to North Facing
+        lda 0		  	; reflect		
+        STA REFP0	  	; 	player 0
 CheckP0Right:
-	lda #%10000000   ; player0 joystick right
+	lda #%10000000   	; player0 joystick right
 	bit SWCHA
-	bne EndInputCheck  ; If bit pattern doesn't match, bypass Right Block
+	bne EndInputCheck  	; If bit pattern doesn't match, bypass Right Block
         inc YarXPos
-        lda YarW	;	set Yar glpyh
-        sta YarAnimOffset ;		to North Facing
-        lda 8		  ; reflect		
-        STA REFP0	  ; 	player 0
+        lda YarW		;	set Yar glpyh
+        sta YarAnimOffset 	;		to North Facing
+        lda 8		  	; reflect		
+        STA REFP0	  	; 	player 0
 EndInputCheck
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -318,33 +319,33 @@ EndInputCheck
 	lda QuotileYPos
         clc
         cmp #96
-        bmi IncrementQuotile	;; if QuotleYPos < 96
+        bmi IncrementQuotile	; if QuotleYPos < 96
 	inc Timer
 	inc Score
-        lda 0			;; else load 0	
-        sta QuotileYPos		;;        into QuotileYPos
-	jsr GetRndByte		;; Get Rand byte and put in A 
-	lsr			;; 	Divide rnd byte by two (hint Hrez)
-	sta QuotileXPos		;;		Store rnd in QuotileXPos
+        lda 0			; else load 0	
+        sta QuotileYPos		;        into QuotileYPos
+	jsr GetRndByte		; Get Rand byte and put in A 
+	lsr			; 	Divide rnd byte by two (hint Hrez)
+	sta QuotileXPos		;		Store rnd in QuotileXPos
 IncrementQuotile
-	inc QuotileYPos         ;; Typical
+	inc QuotileYPos         ; Typical
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Check collision between player0 and the playfield 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-	ldy #$A0	; Assume sky will be blue (no collision)
-	lda #%10000000	; hi bit of CXPPMM 
-	bit CXPPMM	;	informs of a Player0, Player1 collision
-	beq BlueSky	; If There is no colision jump to Blue sky
-	ldy #$30		; else red 
+	ldy #$A0		; Assume sky will be blue (no collision)
+	lda #%10000000		; hi bit of CXPPMM 
+	bit CXPPMM		;	informs of a Player0, Player1 collision
+	beq BlueSky		; If There is no colision jump to Blue sky
+	ldy #$30			; else red 
 BlueSky
-	sty BgColor	; Blue or Red gets stored in our Background color field
-	sta CXCLR	; Reset all collision flags
+	sty BgColor		; Blue or Red gets stored in our Background color field
+	sta CXCLR		; Reset all collision flags
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Loop back to start a brand new frame
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-	jmp StartFrame			; continue to display the next frame
+	jmp StartFrame		; continue to display the next frame
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Subroutine to handle object horizontal position w/ fine offset 
@@ -363,7 +364,7 @@ SetObjectXPos subroutine
 	asl
 	asl
 	asl
-	asl		; move four lowest bits to hi (littleendian)
+	asl			; move four lowest bits to hi (littleendian)
 	sta HMP0,Y		; store the fine offset to the correct HMxx
 	sta RESP0,Y		; fix object position in 15 step increment
 	rts			; return	
@@ -374,16 +375,16 @@ SetObjectXPos subroutine
 ;; Generate a random number using a Linear-Feedback Shift Register  
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 GetRndByte subroutine
-	lda Random	; Load starting random seed
-	asl 		; <<1
-	eor Random	; xor
-	asl		; <<1
-	eor Random	; xor
+	lda Random		; Load starting random seed
+	asl 			; <<1
+	eor Random		; xor
+	asl			; <<1
+	eor Random		; xor
 	asl
 	asl
 	eor Random
 	asl
-	rol Random	; performs a series of shifts and bit operations
+	rol Random		; performs a series of shifts and bit operations
 	rts 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -392,29 +393,29 @@ GetRndByte subroutine
 ;; get offsest addr of  5 pixels tall digits. so step will be (digit * 5) 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 CalculateDigitOffset subroutine
-	ldx #1		; X register is the loop counter
-.PrepareScoreLoop	; this will loop twice, once for score, 2nd for timer
-	lda Score,X 	; load score + x (digits + 1//timer or + 0//score)
-	;;prepare lo-digit
-	and #%00001111  ; mask tens part of digits or score, gets ones part
-	sta Scratch	; save the value of A into Temp
-	asl		; Multiply
-	asl		; 		by
-	adc Scratch	; 			five  	(hint: n*2*2+n) 
-	sta OnesDigitOffset,x	; save A in OnesDigitOffset + 1
+	ldx #1			; X register is the loop counter
+.PrepareScoreLoop		; this will loop twice, once for score, 2nd for timer
+	lda Score,X 		; load score + x (digits + 1//timer or + 0//score)
+	; prepare lo-digit
+	and #%00001111  	; mask tens part of digits or score, gets ones part
+	sta Scratch		; save the value of A into Temp
+	asl			; Multiply
+	asl			; 		by
+	adc Scratch		; 			five  	(hint: n*2*2+n) 
+	sta OnesDigitOffset,x		; save A in OnesDigitOffset + 1
 		
-	lda Score,x	; load A w/ x = 1 or timer
-	;;prepare hi digit
-	and #$F0	; mask out the ones digit
-	lsr		; divide value of hi digit by 16
-	lsr		; 	then multiply 	
-	sta Scratch	;		by 5 to get	
-	lsr		;			it's offset	
-	lsr		;				into LUT	
-	adc Scratch	; hint: (add n/4 to n/16 same as (n/16)*5
-	sta TensDigitOffset,x ; store A in TensDigitOffset or ""+1
+	lda Score,x		; load A w/ x = 1 or timer
+	; prepare hi digit
+	and #$F0		; mask out the ones digit
+	lsr			; divide value of hi digit by 16
+	lsr			; 	then multiply 	
+	sta Scratch		;		by 5 to get	
+	lsr			;			it's offset	
+	lsr			;				into LUT	
+	adc Scratch		; hint: (add n/4 to n/16 same as (n/16)*5
+	sta TensDigitOffset,x 	; store A in TensDigitOffset or ""+1
 
-	dex		; x--
+	dex			; x--
 	bpl .PrepareScoreLoop	;do while x is positive
 	rts
 
@@ -523,9 +524,9 @@ Digits:
     .byte %01000100          ; #   #
     .byte %01000100          ; #   #
 
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Player Graphic and Color
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 YarSprite:
 ;Offset Legend
@@ -537,77 +538,84 @@ YarSprite:
 ;JoystickPos 10000000 Heads E	GlyphOffset	64	and reflect
 ;JoystickPos 10010000 Heads NE	GlyphOffset	80	and reflect
 ;JoystickPos 10100000 Heads SE	GlyphOffset	96	and reflect
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;Yar bitpatterns courtesy of Dennis Debro, dissasembly of Scott H. Warsaw code
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;YarN
-   .byte $00 ; |........|
-   .byte $24 ; |..X..X..|
-   .byte $18 ; |...XX...|
-   .byte $24 ; |..X..X..|
-   .byte $24 ; |..X..X..|
-   .byte $7E ; |.XXXXXX.|
-   .byte $5A ; |.X.XX.X.|
-   .byte $DB ; |XX.XX.XX|
-   .byte $3C ; |..XXXX..|
-;YarS				+9
-   .byte $00 ; |........|	
-   .byte $3C ; |..XXXX..|
-   .byte $DB ; |XX.XX.XX|
-   .byte $5A ; |.X.XX.X.|
-   .byte $7E ; |.XXXXXX.|
-   .byte $24 ; |..X..X..|
-   .byte $24 ; |..X..X..|
-   .byte $18 ; |...XX...|
-   .byte $24 ; |..X..X..|	
-;YarW				+18
-   	.byte $00 ; |........|
-   	.byte $02 ; |......X.|
-   	.byte $0E ; |....XXX.|
-   	.byte $99 ; |X..XX..X|
-   	.byte $67 ; |.XX..XXX|
-   	.byte $67 ; |.XX..XXX|
-   	.byte $99 ; |X..XX..X|
-   	.byte $0E ; |....XXX.|
-   	.byte $02 ; |......X.|
-;YarNW				+27
-           .byte $00 ; |........|
-           .byte $20 ; |..X.....|
-           .byte $30 ; |..XX....|
-           .byte $ED ; |XXX.XX.X|
-           .byte $47 ; |.X...XXX|
-           .byte $2C ; |..X.XX..|
-           .byte $3F ; |..XXXXXX|
-           .byte $17 ; |...X.XXX|
-           .byte $36 ; |..XX.XX.|
-;YarSW   			+36
-				
-   .byte $36 ; |..XX.XX.|
-   .byte $17 ; |...X.XXX|
-   .byte $3F ; |..XXXXXX|
-   .byte $2C ; |..X.XX..|
-   .byte $47 ; |.X...XXX|
-   .byte $ED ; |XXX.XX.X|
-   .byte $30 ; |..XX....|
-   .byte $20 ; |..X.....|
-           .byte $00 ; |........|
-        .byte $00 ; |        |
+	.byte $00 ; |........|
+	.byte $24 ; |..X..X..|
+	.byte $18 ; |...XX...|
+	.byte $24 ; |..X..X..|
+	.byte $24 ; |..X..X..|
+	.byte $7E ; |.XXXXXX.|
+	.byte $5A ; |.X.XX.X.|
+	.byte $DB ; |XX.XX.XX|
+	.byte $3C ; |..XXXX..|
+;YarS				;+9
+	.byte $00 ; |........|	;
+	.byte $3C ; |..XXXX..|
+	.byte $DB ; |XX.XX.XX|
+	.byte $5A ; |.X.XX.X.|
+	.byte $7E ; |.XXXXXX.|
+	.byte $24 ; |..X..X..|
+	.byte $24 ; |..X..X..|
+	.byte $18 ; |...XX...|
+	.byte $24 ; |..X..X..|
+;YarW				;+18
+	.byte $00 ; |........|
+	.byte $02 ; |......X.|
+	.byte $0E ; |....XXX.|
+	.byte $99 ; |X..XX..X|
+	.byte $67 ; |.XX..XXX|
+	.byte $67 ; |.XX..XXX|
+	.byte $99 ; |X..XX..X|
+	.byte $0E ; |....XXX.|
+	.byte $02 ; |......X.|
+;YarNW		   		;+27
+	.byte $00 ; |........|
+	.byte $20 ; |..X.....|
+	.byte $30 ; |..XX....|
+	.byte $ED ; |XXX.XX.X|
+	.byte $47 ; |.X...XXX|
+	.byte $2C ; |..X.XX..|
+	.byte $3F ; |..XXXXXX|
+	.byte $17 ; |...X.XXX|
+	.byte $36 ; |..XX.XX.|
+;YarSW  		 	;+36
+	.byte $00 ; |........|
+	.byte $36 ; |..XX.XX.|
+	.byte $17 ; |...X.XXX|
+	.byte $3F ; |..XXXXXX|
+	.byte $2C ; |..X.XX..|
+	.byte $47 ; |.X...XXX|
+	.byte $ED ; |XXX.XX.X|
+	.byte $30 ; |..XX....|
+	.byte $20 ; |..X.....|
+;original graphics
+;YarHover
+	.byte $00 ; |........|
+	.byte $00 ; |        |
 	.byte $24 ; |  X  X  |
 	.byte $99 ; |X  XX  X|
 	.byte $BD ; |X XXXX X|	
-	.byte $A5 ; |X X  X X|		4th
+	.byte $A5 ; |X X  X X|
 	.byte $7E ; | XXXXXX |
 	.byte $18 ; |   XX   |
 	.byte $FF ; |XXXXXXXX|
-	.byte $DB ; |XX XX XX|		8th
+	.byte $DB ; |XX XX XX|
 	.byte $18 ; |   XX   |
-        .byte $00 ; |........|		16th
-         .byte $24 ; |..X..X..|
-         .byte $99 ; |X..XX..X|
-         .byte $A5 ; |X.X..X.X|
-         .byte $E7 ; |XXX..XXX|
-         .byte $18 ; |...XX...|
-         .byte $18 ; |...XX...|
-         .byte $18 ; |...XX...|
-         .byte $3C ; |..XXXX..|
-
+;YarHover_
+	.byte $00 ; |........|
+	.byte $24 ; |..X..X..|
+	.byte $99 ; |X..XX..X|
+	.byte $A5 ; |X.X..X.X|
+	.byte $E7 ; |XXX..XXX|
+	.byte $18 ; |...XX...|
+	.byte $18 ; |...XX...|
+	.byte $18 ; |...XX...|
+	.byte $3C ; |..XXXX..|
+	
 
 
 QuotileSprite
@@ -643,7 +651,6 @@ Quotile_2
 	.byte $20 ; |..X.....|
 	.byte $18 ; |...XX...|
 
-
 YarColor:
 	byte #$00
 	byte #$0E
@@ -665,10 +672,11 @@ QuotileColor:
 	byte #$46
 	byte #$46
 
-
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Playfield Graphics and Color
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; courtesy of bg building tool at: https://alienbill.com/2600/atari-background-builder/
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 PF0DataA
 	.byte %11110000
