@@ -59,6 +59,7 @@ Reset:
 	sta YarYPos
 	lda #0
 	sta Score
+	lda #1
 	sta Timer
 	lda #80
 	sta YarXPos
@@ -133,70 +134,64 @@ StartFrame:
 
 	sta VBLANK		; turn off VBLANK
 
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;; Display the scoreboard lines 
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-	lda #0			; clear TIA registers
-	sta PF0			;	for
-	sta PF1			;		each
-	sta PF2			;			frame
-	sta GRP0		;				...
-	sta GRP1		;					...
-	lda #$1C		; Use white Playfield color 
-	sta COLUPF		;			to draw digits
-	lda #%00000000		; Disable Playfield
-	sta CTRLPF		; 			Reflection
-
-	ldx #DIGITS_HEIGHT	; decrememnting loop, start with (5)
-.ScoreDigitLoop:
-	ldy TensDigitOffset	; get the tens digit offset for the score
-	lda Digits,y		; load the bitpattern returned from the LUT
-	and #$F0		; mask out the graphics for the ones digit
-	sta ScoreSprite		; save the score tens digit pattern in a variable
-
-	ldy OnesDigitOffset	; get the ones digit bit pattern offset
-	lda Digits,Y
-	and #$0F		; mask out the graphics for the tens digit
-	ora ScoreSprite		; merge bit pattern with the other digit
-
-	sta WSYNC		; wait for the next line
-	sta PF1			; update the playfield to display score sprite
-
-	ldy TensDigitOffset+1	; get the tens digit offset for the score
-	lda Digits,y		; load the bitpattern returned from the LUT
-	and #$F0		; mask out the graphics for the ones digit
-	sta TimerSprite		; save the score tens digit pattern in a variable
-
-	ldy OnesDigitOffset+1	; get the ones digit bit pattern offset
-	lda Digits,Y
-	and #$0F		; mask out the graphics for the tens digit
-	ora TimerSprite		; merge bit pattern with the other digit
-	sta TimerSprite		; save it
-
-	jsr Sleep12Cycles
-
-	sta PF1			; update the playfield for the timer display
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; Display the scoreboard lines
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+	lda #0
+	sta PF0
+	sta PF1
+	sta PF2
+	sta GRP0
+	sta GRP1                 ; reset TIA registers before displaying the score
+	lda #$1E
+	sta COLUPF 		     ; set score number color to yellow
+	ldx #DIGITS_HEIGHT       ; start X counter with 5 (height of digits)
 	
-	ldy ScoreSprite		; preload next scanline
-	sta WSYNC		; wait for next scanline
-
-	sta PF1			; update the playfield for the score display
-
-	inc TensDigitOffset 
+.ScoreDigitLoop:
+	ldy TensDigitOffset      ; get the tens digit offset for the Score
+	lda Digits,Y             ; load the bit pattern from lookup table
+	and #$F0                 ; mask/remove the graphics for the ones digit
+	sta ScoreSprite          ; save the score tens digit pattern in a variable
+	
+	ldy OnesDigitOffset      ; get the ones digit offset for the Score
+	lda Digits,Y             ; load the digit bit pattern from lookup table
+	and #$0F                 ; mask/remove the graphics for the tens digit
+	ora ScoreSprite          ; merge it with the saved tens digit sprite
+	sta ScoreSprite          ; and save it
+	sta WSYNC                ; wait for the end of scanline
+	sta PF1                  ; update the playfield to display the Score sprite
+	
+	ldy TensDigitOffset+1    ; get the left digit offset for the Timer
+	lda Digits,Y             ; load the digit pattern from lookup table
+	and #$F0                 ; mask/remove the graphics for the ones digit
+	sta TimerSprite          ; save the timer tens digit pattern in a variable
+	
+	ldy OnesDigitOffset+1    ; get the ones digit offset for the Timer
+	lda Digits,Y             ; load digit pattern from the lookup table
+	and #$0F                 ; mask/remove the graphics for the tens digit
+	ora TimerSprite          ; merge with the saved tens digit graphics
+	;sta TimerSprite          ; and save it
+	
+	jsr Sleep12Cycles        ; wastes some cycles
+	
+	sta PF1                  ; update the playfield for Timer display
+	
+	ldy ScoreSprite          ; preload for the next scanline
+	sta WSYNC                ; wait for next scanline
+	
+	sty PF1                  ; update playfield for the score display
+	inc TensDigitOffset
 	inc TensDigitOffset+1
 	inc OnesDigitOffset
-	inc OnesDigitOffset+1
-
-	jsr Sleep12Cycles	;probly don't need this on last write of timer 
-
-	dex			; X-- hint: draw next line down of score pattern
-	sta PF1			; update the playfield to display score sprite
-	bne	.ScoreDigitLoop ; do while X > 0
-
-
-	sta WSYNC 
-
-
+	inc OnesDigitOffset+1    ; increment all digits for the next line of data
+	
+	jsr Sleep12Cycles        ; waste some cycles
+	
+	dex                      ; X--
+	sta PF1                  ; update the playfield for the Timer display
+	bne .ScoreDigitLoop      ; if dex != 0, then branch to ScoreDigitLoop
+	
+	sta WSYNC
 	
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -290,9 +285,13 @@ CheckP0Down:
 	lda #%00100000   ; player0 joystick down
 	bit SWCHA
 	bne CheckP0Left  ; If bit pattern doesn't match, bypass Down Block
-        dec YarYPos	
         lda YarS	;	set Yar glpyh
         sta YarAnimOffset ;		to South Facing
+	lda #6		 ; Yar can't 
+	clc		;	fly below
+	cmp YarYPos	;		the deck
+	bpl CheckP0Left  ; skip decrement if he tries to 
+        dec YarYPos	
 CheckP0Left:
 	lda #%01000000   ; player0 joystick left
 	bit SWCHA
@@ -320,6 +319,8 @@ EndInputCheck
         clc
         cmp #96
         bmi IncrementQuotile	;; if QuotleYPos < 96
+	inc Timer
+	inc Score
         lda 0			;; else load 0	
         sta QuotileYPos		;;        into QuotileYPos
 	jsr GetRndByte		;; Get Rand byte and put in A 
