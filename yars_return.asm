@@ -21,6 +21,9 @@ YarXPos		byte	; Positions
 YarYPos 	byte	;
 QuotileXPos 	byte    ;
 QuotileYPos 	byte	;
+MissileXPos	byte	;
+MissileYPos     byte	;
+MissileHeading	byte	;
 YarSpritePtr    word	; Pointers
 YarColorPtr     word	;
 QuotileSpritePtr	word	;
@@ -47,6 +50,11 @@ YarS equ 0
 YarW equ 18
 YarNW equ 27
 YarSW equ 36
+FireN equ #%10000000
+FireS equ #%01000000
+FireE equ #%00100000
+FireW equ #%00010000
+;;TODO maybe use bit field for velocity zero|one too? FireVector?
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;	;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Start our ROM code at memory address $F000
@@ -130,6 +138,10 @@ StartFrame:
 	ldy #1
 	jsr SetObjectXPos	; set player1 horizontal position
 
+	lda MissileXPos		; samw as above, but for Missile 
+	ldy #2			; 
+	jsr SetObjectXPos	; set Missile horizontal position 
+	
 	jsr CalculateDigitOffset; calc scoreboard digits offset
 
 	sta WSYNC
@@ -221,12 +233,18 @@ GameVisibleLine
 	sta WSYNC
 	;;END: Draw Playfield________________
 
-.AreWeInsideYarSprite:
-	txa			; transfer linePos to A
-	sec			; sec (before subtract)
-	sbc YarYPos		; SpriteY - linepos
-	cmp YAR_HEIGHT		; w/in height of sprite?
-	bcc .DrawYarSprite
+.DrawMissile:
+	lda #%00000000		; Value to make missile invisible
+	cpx MissileYPos		; Test: is missile on this scanline? 
+	bne .TestYarOnLine	;    if not: skip to next section 
+	lda #%00000010		;      if so: enable the missle 
+.TestYarOnLine:
+	sta ENAM0		; visible or invisible...draw missile 
+	txa			; Subtract the 
+	sec			;       line position from	
+	sbc YarYPos		; 		the yar position	
+	cmp YAR_HEIGHT		; if the result 
+	bcc .DrawYarSprite	;	is positive: yar is on scanline
 	lda #0			; else: set  empty sprite line
 
 .DrawYarSprite        
@@ -305,12 +323,24 @@ CheckP0Left:
 CheckP0Right:
 	lda #%10000000   	; player0 joystick right
 	bit SWCHA
-	bne EndInputCheck  	; If bit pattern doesn't match, bypass Right Block
+	bne CheckFire	  	; If bit pattern doesn't match, bypass Right Block
         inc YarXPos
         lda YarW		;	set Yar glpyh
         sta YarAnimOffset 	;		to North Facing
         lda 8		  	; reflect		
         STA REFP0	  	; 	player 0
+CheckFire:
+	lda #%10000000		; check if the Fire
+	bit INPT4		; 		button is pressed
+	bne EndInputCheck	; Button not pressed skip to end
+	lda YarYPos		; Missile starts
+	clc			;	   4 pixels 
+	adc #4			;		inside
+	sta MissileYPos		;	          Yar Y Position	
+	lda YarXPos		; Missile starts
+	clc			;	   4 pixels 
+	adc #4			;		inside
+	sta MissileXPos		;		  Yar X Position	
 EndInputCheck
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -428,21 +458,21 @@ Sleep12Cycles subroutine
     rts
 
 Digits:
-    .byte %01110111          ; ### ###
+    .byte %00100010          ;  #   # 
     .byte %01010101          ; # # # #
     .byte %01010101          ; # # # #
     .byte %01010101          ; # # # #
-    .byte %01110111          ; ### ###
+    .byte %00100010          ;  #   # 
 
     .byte %00010001          ;   #   #
-    .byte %00010001          ;   #   #
+    .byte %00110011          ;  ##  ##
     .byte %00010001          ;   #   #
     .byte %00010001          ;   #   #
     .byte %00010001          ;   #   #
 
     .byte %01110111          ; ### ###
     .byte %00010001          ;   #   #
-    .byte %01110111          ; ### ###
+    .byte %00110011          ;  ##  ##
     .byte %01000100          ; #   #
     .byte %01110111          ; ### ###
 
@@ -462,9 +492,9 @@ Digits:
     .byte %01000100          ; #   #
     .byte %01110111          ; ### ###
     .byte %00010001          ;   #   #
-    .byte %01110111          ; ### ###
+    .byte %01100110          ; ##  ## 
 
-    .byte %01110111          ; ### ###
+    .byte %00110011          ;  ##  ##
     .byte %01000100          ; #   #
     .byte %01110111          ; ### ###
     .byte %01010101          ; # # # #
@@ -473,8 +503,8 @@ Digits:
     .byte %01110111          ; ### ###
     .byte %00010001          ;   #   #
     .byte %00010001          ;   #   #
-    .byte %00010001          ;   #   #
-    .byte %00010001          ;   #   #
+    .byte %00100010          ;  #   # 
+    .byte %00100010          ;  #   # 
 
     .byte %01110111          ; ### ###
     .byte %01010101          ; # # # #
@@ -486,7 +516,7 @@ Digits:
     .byte %01010101          ; # # # #
     .byte %01110111          ; ### ###
     .byte %00010001          ;   #   #
-    .byte %01110111          ; ### ###
+    .byte %01100110          ; ##  ## 
 
     .byte %00100010          ;  #   #
     .byte %01010101          ; # # # #
@@ -500,11 +530,11 @@ Digits:
     .byte %01010101          ; # # # #
     .byte %01110111          ; ### ###
 
-    .byte %01110111          ; ### ###
+    .byte %00100010          ;  #   # 
+    .byte %01010101          ; # # # #
     .byte %01000100          ; #   #
-    .byte %01000100          ; #   #
-    .byte %01000100          ; #   #
-    .byte %01110111          ; ### ###
+    .byte %01010101          ; # # # #
+    .byte %00100010          ;  #   # 
 
     .byte %01100110          ; ##  ##
     .byte %01010101          ; # # # #
@@ -523,6 +553,7 @@ Digits:
     .byte %01100110          ; ##  ##
     .byte %01000100          ; #   #
     .byte %01000100          ; #   #
+
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Player Graphic and Color
