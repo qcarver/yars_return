@@ -23,8 +23,8 @@ QuotileXPos 	byte    ;
 QuotileYPos 	byte	;
 MissileXPos	byte	;
 MissileYPos     byte	;
-MissileHeading	byte	;
-YarSpritePtr    word	; Pointers
+MissileData	byte	;
+YarSpritePtr 	word	; Pointers
 YarColorPtr     word	;
 QuotileSpritePtr	word	;
 QuotileColorPtr	word	;
@@ -42,19 +42,22 @@ TensDigitOffset word    ; LUT offset for 10's digit
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Define constants
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-YAR_HEIGHT equ 	9	; Height of Yar Sprite
-QUOTILE_HEIGHT equ 9	; Height of Quotile
-DIGITS_HEIGHT equ 5	; Scoreboard digit
-YarN equ 9
-YarS equ 0
-YarW equ 18
-YarNW equ 27
-YarSW equ 36
-FireN equ #%10000000
-FireS equ #%01000000
-FireE equ #%00100000
-FireW equ #%00010000
-;;TODO maybe use bit field for velocity zero|one too? FireVector?
+_YAR_HEIGHT	equ 9		; Height of Yar Sprite
+_QUOTILE_HEIGHT	equ 9		; Height of Quotile
+_DIGITS_HEIGHT	equ 5		; Scoreboard digit
+_YAR_N		equ 9		; Offsets
+_YAR_S		equ 0		;    for Yar
+_YAR_W		equ 18		;	Sprites
+_YAR_NW		equ 27		;		by direction
+_YAR_SW		equ 36		;		
+_UP		equ #%00010000	; bitmasks
+_DOWN		equ #%00100000	;	for missile
+_LEFT		equ #%01000000	;	   and P0 joystick
+_RIGHT		equ #%10000000	;		direction
+_DIR_MASK	equ #%11110000	; mask to copy all direction bits above
+_INPT4_FIRED	equ #%10000000  ; bitmask to check P0 joystick button press
+_FLYOUT		equ #%00000001  ; bitmask for Flyout (is missile in flight)
+
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;	;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Start our ROM code at memory address $F000
@@ -87,9 +90,9 @@ Reset:
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Initialize the pointers to LUTs 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-	lda #<YarSprite
+	lda #<_YAR_Sprite
 	sta YarSpritePtr	;lo-byte for address of Yar sprite
-	lda #>YarSprite
+	lda #>_YAR_Sprite
 	sta YarSpritePtr+1	;hi-byte for address of Yar sprite	
 
 	lda #<YarColor
@@ -138,7 +141,7 @@ StartFrame:
 	ldy #1
 	jsr SetObjectXPos	; set player1 horizontal position
 
-	lda MissileXPos		; samw as above, but for Missile 
+	lda MissileXPos		; same as above, but for Missile 
 	ldy #2			; 
 	jsr SetObjectXPos	; set Missile horizontal position 
 	
@@ -160,7 +163,7 @@ StartFrame:
 	sta GRP1                 ; reset TIA registers before displaying the score
 	lda #$1E
 	sta COLUPF 		     ; set score number color to yellow
-	ldx #DIGITS_HEIGHT       ; start X counter with 5 (height of digits)
+	ldx #_DIGITS_HEIGHT       ; start X counter with 5 (height of digits)
 	
 .ScoreDigitLoop:
 	ldy TensDigitOffset      ; get the tens digit offset for the Score
@@ -243,11 +246,11 @@ GameVisibleLine
 	txa			; Subtract the 
 	sec			;       line position from	
 	sbc YarYPos		; 		the yar position	
-	cmp YAR_HEIGHT		; if the result 
-	bcc .DrawYarSprite	;	is positive: yar is on scanline
+	cmp #_YAR_HEIGHT		; if the result 
+	bcc .Draw_YAR_Sprite	;	is positive: yar is on scanline
 	lda #0			; else: set  empty sprite line
 
-.DrawYarSprite        
+.Draw_YAR_Sprite        
 	clc			;add
 	adc YarAnimOffset	; Yar animation offset
         tay
@@ -261,7 +264,7 @@ GameVisibleLine
 	txa			; transfer linePos to A
 	sec			; sec (before subtract)
 	sbc QuotileYPos		; SpriteY - linepos
-	cmp QUOTILE_HEIGHT		; w/in height of sprite?
+	cmp #_QUOTILE_HEIGHT		; w/in height of sprite?
 	bcc .DrawQuotileSprite
 	lda #0			; else: set  empty sprite line
 
@@ -293,46 +296,50 @@ GameVisibleLine
 ;; Process joystick input for player0 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-CheckP0Up:
-	lda #%00010000		; player0 joystick up
+CheckP0_UP:
+	lda #_UP			; player0 joystick up
 	bit SWCHA	
-	bne CheckP0Down		; If bit pattern doesn't bypass UP
+	bne CheckP0_DOWN		; If bit pattern doesn't bypass UP
         inc YarYPos	
-        lda YarN		;	set Yar glpyh
+        lda #_YAR_N		;	set Yar glpyh
         sta YarAnimOffset 	;		to North Facing
-CheckP0Down:
-	lda #%00100000   	; player0 joystick down
+CheckP0_DOWN:
+	lda #_DOWN  		; player0 joystick down
 	bit SWCHA
-	bne CheckP0Left  	; If bit pattern doesn't match, bypass Down Block
-        lda YarS		;	set Yar glpyh
+	bne CheckP0_LEFT  	; If bit pattern doesn't match, bypass #_DOWN Block
+        lda #_YAR_S		;	set Yar glpyh
         sta YarAnimOffset 	;		to South Facing
 	lda #6		 	; Yar can't 
 	clc			;	fly below
 	cmp YarYPos		;		the deck
-	bpl CheckP0Left  	; skip decrement if he tries to 
+	bpl CheckP0_LEFT  	; skip decrement if he tries to 
         dec YarYPos	
-CheckP0Left:
-	lda #%01000000   	; player0 joystick left
+CheckP0_LEFT:
+	lda #_LEFT	  	; player0 joystick left
 	bit SWCHA
-	bne CheckP0Right  	; If bit pattern doesn't match, bypass Left Block
+	bne CheckP0_RIGHT  	; If bit pattern doesn't match, bypass #_LEFT Block
         dec YarXPos	
-        lda YarW		;	set Yar glpyh
+        lda #_YAR_W		;	set Yar glpyh
         sta YarAnimOffset 	;		to North Facing
         lda 0		  	; reflect		
         STA REFP0	  	; 	player 0
-CheckP0Right:
-	lda #%10000000   	; player0 joystick right
+CheckP0_RIGHT:
+	lda #_RIGHT  	; player0 joystick right
 	bit SWCHA
-	bne CheckFire	  	; If bit pattern doesn't match, bypass Right Block
+	bne CheckFire	  	; If bit pattern doesn't match, bypass #_RIGHT Block
         inc YarXPos
-        lda YarW		;	set Yar glpyh
+        lda #_YAR_W		;	set Yar glpyh
         sta YarAnimOffset 	;		to North Facing
         lda 8		  	; reflect		
         STA REFP0	  	; 	player 0
 CheckFire:
-	lda #%10000000		; check if the Fire
+	lda #_INPT4_FIRED	; check if the Fire
 	bit INPT4		; 		button is pressed
 	bne EndInputCheck	; Button not pressed skip to end
+	lda #_DIR_MASK		; Copy P0 joystick
+	and SWCHA		; 	direction data and
+	ora #_FLYOUT		;		flyout (fired!) flag
+	sta MissileData		; 			into MissileData
 	lda YarYPos		; Missile starts
 	clc			;	   4 pixels 
 	adc #4			;		inside
@@ -341,11 +348,50 @@ CheckFire:
 	clc			;	   4 pixels 
 	adc #4			;		inside
 	sta MissileXPos		;		  Yar X Position	
+	
 EndInputCheck
-
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; Missile Flyout 
+;; Recall MissileData MSNybble (like joystick data) is inverted logic
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+	lda #_FLYOUT		; if the missile
+	bit MissileData		; 	is not in flyout	
+	beq ResetMissile	;		skip to resetting missile
+FlyoutUp
+	lda #_UP		; if the missile
+	bit MissileData		; 		is not in UP	
+	bne FlyoutDown		; 	then: skip to check for Down	
+	inc MissileYPos 	; 	else: 	subtract from Y Pos
+	inc MissileYPos 	; 	else: 	subtract from Y Pos
+	jmp FlyoutRight		; #_UP & #_DOWN are mutually exclusive, skip it
+FlyoutDown
+	lda #_DOWN		; if the missile flyout
+	bit MissileData		; 		is not Down 
+	bne FlyoutRight		;	then: skop to check for Right
+	dec MissileYPos		; 	else: add to Y Pos
+	dec MissileYPos		; 	else: add to Y Pos
+FlyoutRight
+	lda #_RIGHT		; if the missile flyout
+	bit MissileData		; 		is not RIGHT 
+	bne FlyoutLeft		; 	then: skip to check for Left
+	inc MissileXPos		; 	else: add to X Pos
+	inc MissileXPos		; 	else: add to X Pos
+	jmp QuotileCalc		; #_RIGHT & #_LEFT are mutually xor, skip it
+FlyoutLeft
+	lda #_LEFT		; if the missile flyout
+	bit MissileData		; 		is not LEFT 
+	bne QuotileCalc		; 	then: skip this block
+	dec MissileXPos		;  	else: subtract from X Pos
+	dec MissileXPos		;  	else: subtract from X Pos
+	jmp QuotileCalc
+	
+ResetMissile
+	and MissileData, #$FE   ; clear the #_FLYOUT flag, leave the rest
+	
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Calculations to update Quotile position for next frame
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+QuotileCalc
 	lda QuotileYPos
         clc
         cmp #96
@@ -559,7 +605,7 @@ Digits:
 ;; Player Graphic and Color
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-YarSprite:
+_YAR_Sprite:
 ;Offset Legend
 ;JoystickPos 00010000 Heads N	GlyphOffset	16
 ;JoystickPos 00100000 Heads S	GlyphOffset	32
@@ -573,7 +619,7 @@ YarSprite:
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;Yar bitpatterns courtesy of Dennis Debro, dissasembly of Scott H. Warsaw code
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;YarN
+;_YAR_N
 	.byte $00 ; |........|
 	.byte $24 ; |..X..X..|
 	.byte $18 ; |...XX...|
@@ -583,7 +629,7 @@ YarSprite:
 	.byte $5A ; |.X.XX.X.|
 	.byte $DB ; |XX.XX.XX|
 	.byte $3C ; |..XXXX..|
-;YarS				;+9
+;_YAR_S				;+9
 	.byte $00 ; |........|	;
 	.byte $3C ; |..XXXX..|
 	.byte $DB ; |XX.XX.XX|
@@ -593,7 +639,7 @@ YarSprite:
 	.byte $24 ; |..X..X..|
 	.byte $18 ; |...XX...|
 	.byte $24 ; |..X..X..|
-;YarW				;+18
+;_YAR_W				;+18
 	.byte $00 ; |........|
 	.byte $02 ; |......X.|
 	.byte $0E ; |....XXX.|
@@ -603,7 +649,7 @@ YarSprite:
 	.byte $99 ; |X..XX..X|
 	.byte $0E ; |....XXX.|
 	.byte $02 ; |......X.|
-;YarNW		   		;+27
+;_YAR_NW		   		;+27
 	.byte $00 ; |........|
 	.byte $20 ; |..X.....|
 	.byte $30 ; |..XX....|
@@ -613,7 +659,7 @@ YarSprite:
 	.byte $3F ; |..XXXXXX|
 	.byte $17 ; |...X.XXX|
 	.byte $36 ; |..XX.XX.|
-;YarSW  		 	;+36
+;_YAR_SW  		 	;+36
 	.byte $00 ; |........|
 	.byte $36 ; |..XX.XX.|
 	.byte $17 ; |...X.XXX|
@@ -660,7 +706,7 @@ Quotile_0
 	.byte $90 ; |X..X....|
 	.byte $88 ; |X...X...|
 	.byte $06 ; |.....XX.|
-;;QUOTILE_HEIGHT = . - Quotile_0 alt way to specify height
+;;_QUOTILE_HEIGHT = . - Quotile_0 alt way to specify height
 Quotile_1	
 	.byte $00 ; |........|
 	.byte $04 ; |.....X..|
