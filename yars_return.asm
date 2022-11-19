@@ -384,6 +384,7 @@ FlyoutLeft
 	dec MissileXPos		;  	else: subtract from X Pos
 	dec MissileXPos		;  	else: subtract from X Pos
 	jmp QuotileCalc
+;;TODO..drop bombs if joystick direction was 11110000 on Firing
 	
 ResetMissile
 	and MissileData, #$FE   ; clear the #_FLYOUT flag, leave the rest
@@ -396,8 +397,16 @@ QuotileCalc
         clc
         cmp #96
         bmi IncrementQuotile	; if QuotleYPos < 96
-	inc Timer
-	inc Score
+	sed			; Enter BCD mode (scoreboard is base-10)
+        lda Score		;
+        clc 			; Accumulator doeesn't have
+        adc #1			;	increment a (A++)	
+        sta Score
+        lda Timer
+        clc
+        adc #1
+        sta Timer
+	cld			; exit BCD mode
         lda 0			; else load 0	
         sta QuotileYPos		;        into QuotileYPos
 	jsr GetRndByte		; Get Rand byte and put in A 
