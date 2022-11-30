@@ -115,30 +115,30 @@ StartFrame:
 	lda #0
 	sta VSYNC		; turn off VSYNC
 	REPEAT 33		; instead of 37 
-		sta WSYNC	;i display VBLANK lines
+		sta WSYNC	; display VBLANK lines
 	REPEND
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Calculations and tasks performed in the pre-VBlank 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-	lda YarXPos		; this will be the A parameter for the subr
-	ldy #0			; this will be the object type paramter 
-	jsr SetObjectXPos	; set Yar horizontal position, call subroutine
+	lda YarXPos		;3	; this will be A parameter for subr
+	ldy #0			;3,6	; this will be object type paramter 
+	jsr SetObjectXPos	;49,55	; set Yar horiz position, call subroutine
 
-	lda QuotileXPos		; same as above, but Quotile instead of Yar
-	ldy #1
-	jsr SetObjectXPos	; set player1 horizontal position
+	lda QuotileXPos		;3,58	; same as above, but Qtile instead of Yar
+	ldy #1			;2,60
+	jsr SetObjectXPos	;49,109	; set player1 horizontal position
 
-	lda MissileXPos		; same as above, but for Missile 
-	ldy #2			; 
-	jsr SetObjectXPos	; set Missile horizontal position 
+	lda MissileXPos		;3,112	; same as above, but for Missile 
+	ldy #2			;2,114	; 
+	jsr SetObjectXPos	;49,163	; set Missile horizontal position 
 	
-	jsr CalculateDigitOffset; calc scoreboard digits offset
+	jsr CalcDigitOffset	;?,??	; calc scoreboard digits offset
 
-	sta WSYNC
-	sta HMOVE		; apply the offsets
+	sta WSYNC ;-----------------------------------------------------------*
+	sta HMOVE		;3	; apply offsets
 
-	sta VBLANK		; turn off VBLANK
+	sta VBLANK		;3,6	; turn off VBLANK
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Display the scoreboard lines
@@ -148,54 +148,54 @@ StartFrame:
 	sta PF1
 	sta PF2
 	sta GRP0
-	sta GRP1		; reset TIA registers before displaying the score
+	sta GRP1		;?,??	; reset TIA registers before displaying the score
 	lda #$1E
-	sta COLUPF		; set score number color to yellow
-	ldx #_DIGITS_HEIGHT	; start X counter with 5 (height of digits)
+	sta COLUPF		;?,??	; set score number color to yellow
+	ldx #_DIGITS_HEIGHT	;?,??	; start X counter with 5 (height of digits)
 	
 .ScoreDigitLoop:
-	ldy TensDigitOffset	; get the tens digit offset for the Score
-	lda Digits,Y		; load the bit pattern from lookup table
-	and #$F0		; mask/remove the graphics for the ones digit
-	sta ScoreSprite		; save the score tens digit pattern in a variable
+	ldy TensDigitOffset	;?,??	; get the tens digit offset for the Score
+	lda Digits,Y		;?,??	; load the bit pattern from lookup table
+	and #$F0		;?,??	; mask/remove the graphics for the ones digit
+	sta ScoreSprite		;?,??	; save the score tens digit pattern in a variable
 	
-	ldy OnesDigitOffset	; get the ones digit offset for the Score
-	lda Digits,Y		; load the digit bit pattern from lookup table
-	and #$0F		; mask/remove the graphics for the tens digit
-	ora ScoreSprite		; merge it with the saved tens digit sprite
-	sta ScoreSprite		; and save it
-	sta WSYNC		; wait for the end of scanline
-	sta PF1			; update the playfield to display the Score sprite
+	ldy OnesDigitOffset	;?,??	; get the ones digit offset for the Score
+	lda Digits,Y		;?,??	; load the digit bit pattern from lookup table
+	and #$0F		;?,??	; mask/remove the graphics for the tens digit
+	ora ScoreSprite		;?,??	; merge it with the saved tens digit sprite
+	sta ScoreSprite		;?,??	; and save it
+	sta WSYNC		;?,??	; wait for the end of scanline
+	sta PF1			;?,??	; update the playfield to display the Score sprite
 	
-	ldy TensDigitOffset+1	; get the left digit offset for the Timer
-	lda Digits,Y		; load the digit pattern from lookup table
-	and #$F0		; mask/remove the graphics for the ones digit
-	sta TimerSprite		; save the timer tens digit pattern in a variable
+	ldy TensDigitOffset+1	;?,??	; get the left digit offset for the Timer
+	lda Digits,Y		;?,??	; load the digit pattern from lookup table
+	and #$F0		;?,??	; mask/remove the graphics for the ones digit
+	sta TimerSprite		;?,??	; save the timer tens digit pattern in a variable
 	
-	ldy OnesDigitOffset+1	; get the ones digit offset for the Timer
-	lda Digits,Y		; load digit pattern from the lookup table
-	and #$0F		; mask/remove the graphics for the tens digit
-	ora TimerSprite		; merge with the saved tens digit graphics
-	sta TimerSprite		; and save it ...commented back in
+	ldy OnesDigitOffset+1	;?,??	; get the ones digit offset for the Timer
+	lda Digits,Y		;?,??	; load digit pattern from the lookup table
+	and #$0F		;?,??	; mask/remove the graphics for the tens digit
+	ora TimerSprite		;?,??	; merge with the saved tens digit graphics
+	sta TimerSprite		;?,??	; and save it ...commented back in
 	
-	jsr Sleep12Cycles	; wastes some cycles
+	jsr Sleep12Cycles	;?,??	; wastes some cycles
 	
-	sta PF1			; update the playfield for Timer display
+	sta PF1			;?,??	; update the playfield for Timer display
 	
-	ldy ScoreSprite		; preload for the next scanline
-	sta WSYNC		; wait for next scanline
+	ldy ScoreSprite		;?,??	; preload for the next scanline
+	sta WSYNC		;?,??	; wait for next scanline
 	
-	sty PF1			; update playfield for the score display
+	sty PF1			;?,??	; update playfield for the score display
 	inc TensDigitOffset
 	inc TensDigitOffset+1
 	inc OnesDigitOffset
-	inc OnesDigitOffset+1	; increment all digits for the next line of data
+	inc OnesDigitOffset+1	;?,??	; increment all digits for the next line of data
 	
-	jsr Sleep12Cycles	; waste some cycles
+	jsr Sleep12Cycles	;?,??	; waste some cycles
 	
-	dex			; X--
-	sta PF1			; update the playfield for the Timer display
-	bne .ScoreDigitLoop	; if dex != 0, then branch to ScoreDigitLoop
+	dex			;?,??	; X--
+	sta PF1			;?,??	; update the playfield for the Timer display
+	bne .ScoreDigitLoop	;?,??	; if dex != 0, then branch to ScoreDigitLoop
 	
 	sta WSYNC
 	
@@ -203,178 +203,178 @@ StartFrame:
 ;; Visible Frame: display 192 scanlines
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 GameVisibleLine
-	ldy BgColor		; load bg color
-	sty COLUBK		;			into bg color register
+	ldy BgColor		;?,??	; load bg color
+	sty COLUBK		;?,??	; 		into bg color register
  
-	ldx #96			; row cnt:192:1,96:2line kernel 
+	ldx #96			;?,??	; row cnt:192:1,96:2line kernel 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Visible Row
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 .GameLineLoop:
 		;;BEGIN: Draw Playfield______________
-	lda PFColors,x		; get color...
-	sta COLUPF		;	for row
-	lda PF0DataA,x		; get bit..
-	sta PF0			;	patterns
-	lda PF1DataA,x		;	for the
-	sta PF1			;	three 
-	lda PF2DataA,x		;	playfield
-	sta PF2			;	vars
+	lda PFColors,x		;?,??	; get color...
+	sta COLUPF		;?,??	; for row
+	lda PF0DataA,x		;?,??	; get bit..
+	sta PF0			;?,??	; patterns
+	lda PF1DataA,x		;?,??	; for the
+	sta PF1			;?,??	; three 
+	lda PF2DataA,x		;?,??	; playfield
+	sta PF2			;?,??	; vars
 	sta WSYNC
 	;;END: Draw Playfield________________
 
 .DrawMissile:
-	lda #%00000000		; Value to make missile invisible
-	cpx MissileYPos		; Test: is missile on this scanline? 
-	bne .TestYarOnLine	;	if not: skip to next section 
-	lda #%00000010		;		if so: enable the missle 
+	lda #%00000000		;?,??	; Value to make missile invisible
+	cpx MissileYPos		;?,??	; Test: is missile on this scanline? 
+	bne .TestYarOnLine	;?,??	; if not: skip to next section 
+	lda #%00000010		;?,??	; 	if so: enable the missle 
 .TestYarOnLine:
-	sta ENAM0		; visible or invisible...draw missile 
-	txa			; Subtract the 
-	sec			;		line position from	
-	sbc YarYPos		;		the yar position	
-	cmp #_YAR_HEIGHT		; if the result 
-	bcc .Draw_YAR_Sprite	;	is positive: yar is on scanline
-	lda #0			; else: set  empty sprite line
+	sta ENAM0		;?,??	; visible or invisible...draw missile 
+	txa			;?,??	; Subtract the 
+	sec			;?,??	; 	line position from	
+	sbc YarYPos		;?,??	; 	the yar position	
+	cmp #_YAR_HEIGHT		;?,??	; if the result 
+	bcc .Draw_YAR_Sprite	;?,??	; is positive: yar is on scanline
+	lda #0			;?,??	; else: set  empty sprite line
 
 .Draw_YAR_Sprite		
 	clc			;add
-	adc YarAnimOffset	; Yar animation offset
+	adc YarAnimOffset	;?,??	; Yar animation offset
 		tay
 	lda (YarSpritePtr),y	;ld Sprite at offset
-	;sta WSYNC		; wait for scanline
-	sta GRP0		; set graphics for Yar
+	;sta WSYNC		;?,??	; wait for scanline
+	sta GRP0		;?,??	; set graphics for Yar
 	lda #$0E		;load color
-	sta COLUP0		; set color of Yar
+	sta COLUP0		;?,??	; set color of Yar
 
 .AreWeInsideQuotileSprite:
-	txa			; transfer linePos to A
-	sec			; sec (before subtract)
-	sbc QuotileYPos		; SpriteY - linepos
-	cmp #_QUOTILE_HEIGHT		; w/in height of sprite?
+	txa			;?,??	; transfer linePos to A
+	sec			;?,??	; sec (before subtract)
+	sbc QuotileYPos		;?,??	; SpriteY - linepos
+	cmp #_QUOTILE_HEIGHT		;?,??	; w/in height of sprite?
 	bcc .DrawQuotileSprite
-	lda #0			; else: set  empty sprite line
+	lda #0			;?,??	; else: set  empty sprite line
 
 .DrawQuotileSprite
-	tay			; hint: Y only indirect register
-	lda #5			; b101 stretches sprite Horizon
+	tay			;?,??	; hint: Y only indirect register
+	lda #5			;?,??	; b101 stretches sprite Horizon
 	sta NUSIZ1
 	lda (QtylSpritePtr),y	;ld Sprite at offset
-	sta WSYNC		; wait for scanline
-	sta GRP1		; set graphics for Quotile
-	lda #$46		;	red
-	sta COLUP1		; set color of Quotile
+	sta WSYNC		;?,??	; wait for scanline
+	sta GRP1		;?,??	; set graphics for Quotile
+	lda #$46		;?,??	; red
+	sta COLUP1		;?,??	; set color of Quotile
 
-	dex			; x--
+	dex			;?,??	; x--
 	bne .GameLineLoop
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Display Overscan
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 	lda #2
-	sta VBLANK		; turn on VBLANK again
+	sta VBLANK		;?,??	; turn on VBLANK again
 	REPEAT 30
-	sta WSYNC		; 30 blank lines of overscan 
+	sta WSYNC		;?,??	; 30 blank lines of overscan 
 	REPEND
 	lda #0
-	sta VBLANK		; turn off VBLANK
+	sta VBLANK		;?,??	; turn off VBLANK
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Process joystick input for player0 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 CheckP0_UP:
-	lda #_UP		; player0 joystick up
+	lda #_UP		;?,??	; player0 joystick up
 	bit SWCHA	
-	bne CheckP0_DOWN	; If bit pattern doesn't bypass UP
+	bne CheckP0_DOWN	;?,??	; If bit pattern doesn't bypass UP
 	inc YarYPos	
-	lda #_YAR_N		;	set Yar glpyh
-	sta YarAnimOffset	;		to North Facing
+	lda #_YAR_N		;?,??	; set Yar glpyh
+	sta YarAnimOffset	;?,??	; 	to North Facing
 CheckP0_DOWN:
-	lda #_DOWN 		; player0 joystick down
+	lda #_DOWN 		;?,??	; player0 joystick down
 	bit SWCHA
-	bne CheckP0_LEFT 	; If bit pattern doesn't match, bypass #_DOWN Block
-	lda #_YAR_S		;	set Yar glpyh
-	sta YarAnimOffset	;		to South Facing
-	lda #6			; Yar can't 
-	clc			;	fly below
-	cmp YarYPos		;		the deck
-	bpl CheckP0_LEFT 	; skip decrement if he tries to 
+	bne CheckP0_LEFT 	;?,??	; If bit pattern doesn't match, bypass #_DOWN Block
+	lda #_YAR_S		;?,??	; set Yar glpyh
+	sta YarAnimOffset	;?,??	; 	to South Facing
+	lda #6			;?,??	; Yar can't 
+	clc			;?,??	; fly below
+	cmp YarYPos		;?,??	; 	the deck
+	bpl CheckP0_LEFT 	;?,??	; skip decrement if he tries to 
 	dec YarYPos	
 CheckP0_LEFT:
-	lda #_LEFT		; player0 joystick left
+	lda #_LEFT		;?,??	; player0 joystick left
 	bit SWCHA
-	bne CheckP0_RIGHT 	; If bit pattern doesn't match, bypass #_LEFT Block
+	bne CheckP0_RIGHT 	;?,??	; If bit pattern doesn't match, bypass #_LEFT Block
 	dec YarXPos	
-	lda #_YAR_W		;	set Yar glpyh
-	sta YarAnimOffset	;		to North Facing
-	lda 0			; reflect		
-	STA REFP0		;	player 0
+	lda #_YAR_W		;?,??	; set Yar glpyh
+	sta YarAnimOffset	;?,??	; 	to North Facing
+	lda 0			;?,??	; reflect		
+	STA REFP0		;?,??	; player 0
 CheckP0_RIGHT:
-	lda #_RIGHT 		; player0 joystick right
+	lda #_RIGHT 		;?,??	; player0 joystick right
 	bit SWCHA
-	bne CheckFire		; If bit pattern doesn't match, bypass #_RIGHT Block
+	bne CheckFire		;?,??	; If bit pattern doesn't match, bypass #_RIGHT Block
 	inc YarXPos
-	lda #_YAR_W		;	set Yar glpyh
-	sta YarAnimOffset	;		to North Facing
-	lda 8			; reflect		
-	STA REFP0		;	player 0
+	lda #_YAR_W		;?,??	; set Yar glpyh
+	sta YarAnimOffset	;?,??	; 	to North Facing
+	lda 8			;?,??	; reflect		
+	STA REFP0		;?,??	; player 0
 CheckFire:
-	lda #_INPT4_FIRED	; check if the Fire
-	bit INPT4		;		button is pressed
-	bne EndInputCheck	; Button not pressed skip to end
-	lda #_DIR_MASK		; Copy P0 joystick
-	and SWCHA		;	direction data and
-	ora #_FLYOUT		;		flyout (fired!) flag
-	sta MissileData		;			into MissileData
-	lda YarYPos		; Missile starts
-	clc			;		4 pixels 
-	adc #4			;		inside
-	sta MissileYPos		;				Yar Y Position	
-	lda YarXPos		; Missile starts
-	clc			;		4 pixels 
-	adc #4			;		inside
-	sta MissileXPos		;		Yar X Position	
+	lda #_INPT4_FIRED	;?,??	; check if the Fire
+	bit INPT4		;?,??	; 	button is pressed
+	bne EndInputCheck	;?,??	; Button not pressed skip to end
+	lda #_DIR_MASK		;?,??	; Copy P0 joystick
+	and SWCHA		;?,??	; direction data and
+	ora #_FLYOUT		;?,??	; 	flyout (fired!) flag
+	sta MissileData		;?,??	; 		into MissileData
+	lda YarYPos		;?,??	; Missile starts
+	clc			;?,??	; 	4 pixels 
+	adc #4			;?,??	; 	inside
+	sta MissileYPos		;?,??	; 			Yar Y Position	
+	lda YarXPos		;?,??	; Missile starts
+	clc			;?,??	; 	4 pixels 
+	adc #4			;?,??	; 	inside
+	sta MissileXPos		;?,??	; 	Yar X Position	
 EndInputCheck
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Missile Flyout 
 ;; Recall MissileData MSNybble (like joystick data) is inverted logic
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-	lda #_FLYOUT		; if the missile
-	bit MissileData		;	is not in flyout	
-	beq ResetMissile	;		skip to resetting missile
+	lda #_FLYOUT		;?,??	; if the missile
+	bit MissileData		;?,??	; is not in flyout	
+	beq ResetMissile	;?,??	; 	skip to resetting missile
 FlyoutUp
-	lda #_UP		; if the missile
-	bit MissileData		;		is not in UP	
-	bne FlyoutDown		;	then: skip to check for Down	
-	inc MissileYPos		;	else:	subtract from Y Pos
-	inc MissileYPos		;	else:	subtract from Y Pos
-	jmp FlyoutRight		; #_UP & #_DOWN are mutually exclusive, skip it
+	lda #_UP		;?,??	; if the missile
+	bit MissileData		;?,??	; 	is not in UP	
+	bne FlyoutDown		;?,??	; then: skip to check for Down	
+	inc MissileYPos		;?,??	; else:	subtract from Y Pos
+	inc MissileYPos		;?,??	; else:	subtract from Y Pos
+	jmp FlyoutRight		;?,??	; #_UP & #_DOWN are mutually exclusive, skip it
 FlyoutDown
-	lda #_DOWN		; if the missile flyout
-	bit MissileData		;		is not Down 
-	bne FlyoutRight		;	then: skop to check for Right
-	dec MissileYPos		;	else: add to Y Pos
-	dec MissileYPos		;	else: add to Y Pos
+	lda #_DOWN		;?,??	; if the missile flyout
+	bit MissileData		;?,??	; 	is not Down 
+	bne FlyoutRight		;?,??	; then: skop to check for Right
+	dec MissileYPos		;?,??	; else: add to Y Pos
+	dec MissileYPos		;?,??	; else: add to Y Pos
 FlyoutRight
-	lda #_RIGHT		; if the missile flyout
-	bit MissileData		;		is not RIGHT 
-	bne FlyoutLeft		;	then: skip to check for Left
-	inc MissileXPos		;	else: add to X Pos
-	inc MissileXPos		;	else: add to X Pos
-	jmp QuotileCalc		; #_RIGHT & #_LEFT are mutually xor, skip it
+	lda #_RIGHT		;?,??	; if the missile flyout
+	bit MissileData		;?,??	; 	is not RIGHT 
+	bne FlyoutLeft		;?,??	; then: skip to check for Left
+	inc MissileXPos		;?,??	; else: add to X Pos
+	inc MissileXPos		;?,??	; else: add to X Pos
+	jmp QuotileCalc		;?,??	; #_RIGHT & #_LEFT are mutually xor, skip it
 FlyoutLeft
-	lda #_LEFT		; if the missile flyout
-	bit MissileData		;		is not LEFT 
-	bne QuotileCalc		;	then: skip this block
-	dec MissileXPos		; 	else: subtract from X Pos
-	dec MissileXPos		; 	else: subtract from X Pos
+	lda #_LEFT		;?,??	; if the missile flyout
+	bit MissileData		;?,??	; 	is not LEFT 
+	bne QuotileCalc		;?,??	; then: skip this block
+	dec MissileXPos		;?,??	; 	else: subtract from X Pos
+	dec MissileXPos		;?,??	; 	else: subtract from X Pos
 	jmp QuotileCalc
 ;;TODO..drop bombs if joystick direction was 11110000 on Firing
 	
 ResetMissile
-	and MissileData, #$FE	; clear the #_FLYOUT flag, leave the rest
+	and MissileData, #$FE	;?,??	; clear the #_FLYOUT flag, leave the rest
 	
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Calculations to update Quotile position for next frame
@@ -383,41 +383,41 @@ QuotileCalc
 	lda QuotileYPos
 	clc
 	cmp #96
-	bmi IncrementQuotile	; if QuotleYPos < 96
-	sed			; Enter BCD mode (scoreboard is base-10)
+	bmi IncrementQuotile	;?,??	; if QuotleYPos < 96
+	sed			;?,??	; Enter BCD mode (scoreboard is base-10)
 	lda Score		;
-	clc			; Accumulator doeesn't have
-	adc #1			;	increment a (A++)	
+	clc			;?,??	; Accumulator doeesn't have
+	adc #1			;?,??	; increment a (A++)	
 	sta Score
 	lda Timer
 	clc
 	adc #1
 	sta Timer
-	cld			; exit BCD mode
-	lda 0			; else load 0	
-	sta QuotileYPos		;		into QuotileYPos
-	jsr GetRndByte		; Get Rand byte and put in A 
-	lsr			;	Divide rnd byte by two (hint Hrez)
-	sta QuotileXPos		;		Store rnd in QuotileXPos
+	cld			;?,??	; exit BCD mode
+	lda 0			;?,??	; else load 0	
+	sta QuotileYPos		;?,??	; 	into QuotileYPos
+	jsr GetRndByte		;?,??	; Get Rand byte and put in A 
+	lsr			;?,??	; Divide rnd byte by two (hint Hrez)
+	sta QuotileXPos		;?,??	; 	Store rnd in QuotileXPos
 IncrementQuotile
-	inc QuotileYPos		; Typical
+	inc QuotileYPos		;?,??	; Typical
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Check collision between player0 and the playfield 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-	ldy #$A0		; Assume sky will be blue (no collision)
-	lda #%10000000		; hi bit of CXPPMM 
-	bit CXPPMM		;	informs of a Player0, Player1 collision
-	beq BlueSky		; If There is no colision jump to Blue sky
-	ldy #$30		; else red 
+	ldy #$A0		;?,??	; Assume sky will be blue (no collision)
+	lda #%10000000		;?,??	; hi bit of CXPPMM 
+	bit CXPPMM		;?,??	; informs of a Player0, Player1 collision
+	beq BlueSky		;?,??	; If There is no colision jump to Blue sky
+	ldy #$30		;?,??	; else red 
 BlueSky
-	sty BgColor		; Blue or Red gets stored in our Background color field
-	sta CXCLR		; Reset all collision flags
+	sty BgColor		;?,??	; Blue or Red gets stored in our Background color field
+	sta CXCLR		;?,??	; Reset all collision flags
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Loop back to start a brand new frame
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-	jmp StartFrame		; continue to display the next frame
+	jmp StartFrame		;?,??	; continue to display the next frame
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Subroutine to handle object horizontal position w/ fine offset 
@@ -427,19 +427,19 @@ BlueSky
 ;; Y is the object type (0:player0, 1:player1, 2:missile0, 3:missle1, 4:ball) 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 SetObjectXPos subroutine
-	sta WSYNC		; start a fresh new scanline
-	sec			; set the carry-flag before subtracting
-.Div15Loop			; divide is just continuos subtraction
-	sbc #15			; subtract 15 from A in accumulator
-	bcs .Div15Loop		; loop until carry-flag is clear
-	eor #7			; xor signs corse remainder from -8 to 7
-	asl
-	asl
-	asl
-	asl			; move four lowest bits to hi (littleendian)
-	sta HMP0,Y		; store the fine offset to the correct HMxx
-	sta RESP0,Y		; fix object position in 15 step increment
-	rts			; return	
+	sta WSYNC		;3,	; start a fresh new scanline
+	sec			;2,5	; set the carry-flag before subtracting
+.Div15Loop			;	; divide is just continuos subtraction
+	sbc #15			;	; subtract 15 from A in accumulator
+	bcs .Div15Loop		;,<12	; loop until carry-flag is clear
+	eor #7			;2,19	; xor signs corse remainder from -8 to 7
+	asl			;2,21
+	asl			;2,23
+	asl			;2,25
+	asl			;2,27	; move four lowest bits to hi (littleendian)
+	sta HMP0,Y		;5,32	; store the fine offset to the correct HMxx
+	sta RESP0,Y		;5,37	; fix object position in 15 step increment
+	rts			;6,43	; return	
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Subroutine to put a random number in Quotile X
@@ -447,16 +447,16 @@ SetObjectXPos subroutine
 ;; Generate a random number using a Linear-Feedback Shift Register  
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 GetRndByte subroutine
-	lda Random		; Load starting random seed
-	asl			; <<1
-	eor Random		; xor
-	asl			; <<1
-	eor Random		; xor
+	lda Random		;?,??	; Load starting random seed
+	asl			;?,??	; <<1
+	eor Random		;?,??	; xor
+	asl			;?,??	; <<1
+	eor Random		;?,??	; xor
 	asl
 	asl
 	eor Random
 	asl
-	rol Random		; performs a series of shifts and bit operations
+	rol Random		;?,??	; performs a series of shifts and bit operations
 	rts 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -464,30 +464,30 @@ GetRndByte subroutine
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; get offsest addr of  5 pixels tall digits. so step will be (digit * 5) 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-CalculateDigitOffset subroutine
-	ldx #1			; X register is the loop counter
-.PrepareScoreLoop		; this will loop twice, once for score, 2nd for timer
-	lda Score,X		; load score + x (digits + 1//timer or + 0//score)
-	; prepare lo-digit
-	and #%00001111 		; mask tens part of digits or score, gets ones part
-	sta Scratch		; save the value of A into Temp
-	asl			; Multiply
-	asl			;		by
-	adc Scratch		;			five 	(hint: n*2*2+n) 
-	sta OnesDigitOffset,x	; save A in OnesDigitOffset + 1
+CalcDigitOffset subroutine
+	ldx #1			;?,??	; X register is the loop counter
+.PrepareScoreLoop		;?,??	; loops twice: score, then timer
+	lda Score,X		;?,??	; load score+x(digits+1//timer|+0//score)
+	;?,??	; prepare lo-digit
+	and #%00001111 		;?,??	; mask tens part of digits or score, gets ones part
+	sta Scratch		;?,??	; save the value of A into Temp
+	asl			;?,??	; Multiply
+	asl			;?,??	; 	by
+	adc Scratch		;?,??	; 		five 	(hint: n*2*2+n) 
+	sta OnesDigitOffset,x	;?,??	; save A in OnesDigitOffset + 1
 		
-	lda Score,x		; load A w/ x = 1 or timer
-	; prepare hi digit
-	and #$F0		; mask out the ones digit
-	lsr			; divide value of hi digit by 16
-	lsr			;	then multiply	
-	sta Scratch		;		by 5 to get	
-	lsr			;			it's offset	
-	lsr			;				into LUT	
-	adc Scratch		; hint: (add n/4 to n/16 same as (n/16)*5
-	sta TensDigitOffset,x	; store A in TensDigitOffset or ""+1
+	lda Score,x		;?,??	; load A w/ x = 1 or timer
+	;?,??	; prepare hi digit
+	and #$F0		;?,??	; mask out the ones digit
+	lsr			;?,??	; divide value of hi digit by 16
+	lsr			;?,??	; then multiply	
+	sta Scratch		;?,??	; 	by 5 to get	
+	lsr			;?,??	; 		it's offset	
+	lsr			;?,??	; 			into LUT	
+	adc Scratch		;?,??	; hint: (add n/4 to n/16 same as (n/16)*5
+	sta TensDigitOffset,x	;?,??	; store A in TensDigitOffset or ""+1
 
-	dex			; x--
+	dex			;?,??	; x--
 	bpl .PrepareScoreLoop	;do while x is positive
 	rts
 
