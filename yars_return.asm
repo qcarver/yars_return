@@ -123,35 +123,34 @@ StartFrame:
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 	lda YarXPos		;3	; this will be A parameter for subr
 	ldy #0			;3,6	; this will be object type paramter 
-	jsr SetObjectXPos	;49,55	; set Yar horiz position, call subroutine
+	jsr SetObjXPos		;78,84	; set Yar horiz position, call subroutine
 
-	lda QuotileXPos		;3,58	; same as above, but Qtile instead of Yar
-	ldy #1			;2,60
-	jsr SetObjectXPos	;49,109	; set player1 horizontal position
+	lda QuotileXPos		;3,87	; same as above, but Qtile instead of Yar
+	ldy #1			;2,89
+	jsr SetObjXPos		;78,167	; set player1 horizontal position
 
-	lda MissileXPos		;3,112	; same as above, but for Missile 
-	ldy #2			;2,114	; 
-	jsr SetObjectXPos	;49,163	; set Missile horizontal position 
+	lda MissileXPos		;3,170	; same as above, but for Missile 
+	ldy #2			;2,172	; 
+	jsr SetObjXPos		;78,250	; set Missile horizontal position 
 	
-	jsr CalcDigitOffset	;?,??	; calc scoreboard digits offset
+	jsr CalcDigitOffset	;111,361; calc scoreboard digits offset
 
 	sta WSYNC ;-----------------------------------------------------------*
 	sta HMOVE		;3	; apply offsets
-
 	sta VBLANK		;3,6	; turn off VBLANK
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Display the scoreboard lines
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-	lda #0
-	sta PF0
-	sta PF1
-	sta PF2
-	sta GRP0
-	sta GRP1		;?,??	; reset TIA registers before displaying the score
-	lda #$1E
-	sta COLUPF		;?,??	; set score number color to yellow
-	ldx #_DIGITS_HEIGHT	;?,??	; start X counter with 5 (height of digits)
+	lda #0			;2,8
+	sta PF0			;3,11	; reset
+	sta PF1			;3,14	;	TIA registers
+	sta PF2			;3,17	;		before
+	sta GRP0		;3,20	;		displaying
+	sta GRP1		;3,23	;			score 
+	lda #$1E		;2,25
+	sta COLUPF		;3,28	; set score number color to yellow
+	ldx #_DIGITS_HEIGHT	;2,30	; start X counter with 5 (height of digits)
 	
 .ScoreDigitLoop:
 	ldy TensDigitOffset	;?,??	; get the tens digit offset for the Score
@@ -426,20 +425,20 @@ BlueSky
 ;; A is the target x-coordinate position in pixels of our target
 ;; Y is the object type (0:player0, 1:player1, 2:missile0, 3:missle1, 4:ball) 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-SetObjectXPos subroutine
+SetObjXPos subroutine
 	sta WSYNC		;3,	; start a fresh new scanline
 	sec			;2,5	; set the carry-flag before subtracting
 .Div15Loop			;	; divide is just continuos subtraction
 	sbc #15			;	; subtract 15 from A in accumulator
-	bcs .Div15Loop		;,<12	; loop until carry-flag is clear
-	eor #7			;2,19	; xor signs corse remainder from -8 to 7
-	asl			;2,21
-	asl			;2,23
-	asl			;2,25
-	asl			;2,27	; move four lowest bits to hi (littleendian)
-	sta HMP0,Y		;5,32	; store the fine offset to the correct HMxx
-	sta RESP0,Y		;5,37	; fix object position in 15 step increment
-	rts			;6,43	; return	
+	bcs .Div15Loop		;,<52	; loop until carry-flag is clear
+	eor #7			;2,54	; xor signs corse remainder from -8 to 7
+	asl			;2,56
+	asl			;2,58
+	asl			;2,60
+	asl			;2,62	; move four lowest bits to hi (littleendian)
+	sta HMP0,Y		;5,67	; store the fine offset to the correct HMxx
+	sta RESP0,Y		;5,72	; fix object position in 15 step increment
+	rts			;6,78	; return	
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Subroutine to put a random number in Quotile X
@@ -465,31 +464,29 @@ GetRndByte subroutine
 ;; get offsest addr of  5 pixels tall digits. so step will be (digit * 5) 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 CalcDigitOffset subroutine
-	ldx #1			;?,??	; X register is the loop counter
-.PrepareScoreLoop		;?,??	; loops twice: score, then timer
-	lda Score,X		;?,??	; load score+x(digits+1//timer|+0//score)
-	;?,??	; prepare lo-digit
-	and #%00001111 		;?,??	; mask tens part of digits or score, gets ones part
-	sta Scratch		;?,??	; save the value of A into Temp
-	asl			;?,??	; Multiply
-	asl			;?,??	; 	by
-	adc Scratch		;?,??	; 		five 	(hint: n*2*2+n) 
-	sta OnesDigitOffset,x	;?,??	; save A in OnesDigitOffset + 1
+	ldx #1			;2	; X register is the loop counter
+.PrepareScoreLoop			; loops twice: score, then timer
+	lda Score,X		;4,6	; load score+x(digits+1//timer|+0//score)
+	and #%00001111 		;2,8	; mask 10's part of digits, gets 1's part
+	sta Scratch		;3,11	; save the value of A into Temp
+	asl			;2,13	; Multiply
+	asl			;2,15	; 		by
+	adc Scratch		;2,17	; 		five 	(hint: n*2*2+n) 
+	sta OnesDigitOffset,x	;4,19	; save A in OnesDigitOffset + 1
 		
-	lda Score,x		;?,??	; load A w/ x = 1 or timer
-	;?,??	; prepare hi digit
-	and #$F0		;?,??	; mask out the ones digit
-	lsr			;?,??	; divide value of hi digit by 16
-	lsr			;?,??	; then multiply	
-	sta Scratch		;?,??	; 	by 5 to get	
-	lsr			;?,??	; 		it's offset	
-	lsr			;?,??	; 			into LUT	
-	adc Scratch		;?,??	; hint: (add n/4 to n/16 same as (n/16)*5
-	sta TensDigitOffset,x	;?,??	; store A in TensDigitOffset or ""+1
+	lda Score,x		;4,23	; load A w/ x = 1 or timer
+	and #$F0		;2,25	; mask out 1's digit, get the 10's side
+	lsr			;2,27	; divide value of hi digit by 16
+	lsr			;2,29	; then multiply	
+	sta Scratch		;3,32	; 	by 5 to get	
+	lsr			;2,34	; 		it's offset	
+	lsr			;2,36	; 			into LUT	
+	adc Scratch		;2,38	; hint: (add n/4 to n/16 same as (n/16)*5
+	sta TensDigitOffset,x	;4,44	; store A in TensDigitOffset or ""+1
 
-	dex			;?,??	; x--
-	bpl .PrepareScoreLoop	;do while x is positive
-	rts
+	dex			;2,46	; x--
+	bpl .PrepareScoreLoop	;3,49	; do while x is positive
+	rts			;105	; (stuff + loops twice + stuff)
 
 ;; Subroutine to waste 12 cycles
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
