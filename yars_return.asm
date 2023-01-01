@@ -40,18 +40,24 @@ TensDigitOffset word	; LUT offset for 10's digit
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Define constants
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+_DONT_REFLECT	equ 0		; set REFP0 to zero to NOT reflect the P0Sprite
+_REFLECT	equ 8		; set REFP0 to eight to reflect the P0Sprite
 _YAR_HEIGHT	equ 9		; Height of Yar Sprite
 _QUOTILE_HEIGHT	equ 9		; Height of Quotile
 _DIGITS_HEIGHT	equ 5		; Scoreboard digit
 _YAR_N		equ 9		; Offsets
 _YAR_S		equ 0		;	for Yar
 _YAR_W		equ 18		;	Sprites
-_YAR_NW		equ 27		;		by direction
-_YAR_SW		equ 36		;		
+_YAR_NW		equ 36		;		by direction
+_YAR_SW		equ 27		;		
 _UP		equ #%00010000	; bitmasks
 _DOWN		equ #%00100000	;	for missile
 _LEFT		equ #%01000000	;		and P0 joystick
-_RIGHT		equ #%10000000	;		direction
+_RIGHT		equ #%10000000	;			direction
+_DOWN_RIGHT	eqU _DOWN | _RIGHT
+_DOWN_LEFT	equ _DOWN | _LEFT
+_UP_RIGHT	equ _UP | _RIGHT
+_UP_LEFT	equ _UP | _LEFT
 _DIR_MASK	equ #%11110000	; mask to copy all direction bits above
 _INPT4_FIRED	equ #%10000000  ; bitmask to check P0 joystick button press
 _FLYOUT		equ #%00000001  ; bitmask for Flyout (is missile in flight)
@@ -284,23 +290,69 @@ GameVisibleLine
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 CheckP0_UP:
-	lda #_UP		;?,??	; player0 joystick up
-	bit SWCHA	
-	bne CheckP0_DOWN	;?,??	; If bit pattern doesn't bypass UP
-	inc YarYPos	
-	lda #_YAR_N		;?,??	; set Yar glpyh
-	sta YarAnimOffset	;?,??	; 	to North Facing
+	lda #_UP		;?,??	; player0 joystick UP?
+	bit SWCHA		;2/3,?? ; 	if not
+	bne CheckP0_DOWN	;?,??	; 		goto check for DOWN
+	inc YarYPos		;2,??	; move Yar up
+CheckP0_UP_LEFT:
+	lda #_LEFT
+        bit SWCHA
+        bne CheckP0_UP_RIGHT
+        ldy #_YAR_NW
+        sty YarAnimOffset
+	dec YarXPos	
+	lda #_DONT_REFLECT	;?,??	; don't use the reflection of the Yar glupgh	
+	STA REFP0
+        jmp CheckFire
+CheckP0_UP_RIGHT:
+	lda #_RIGHT
+        bit SWCHA
+        bne P0_UP
+        ldy #_YAR_NW
+        sty YarAnimOffset
+	inc YarXPos	
+	lda #_REFLECT		;?,??	; reflect		
+	STA REFP0
+        jmp CheckFire
+P0_UP:
+	LDY #_YAR_N
+        STY YarAnimOffset
+        jmp CheckFire
+
 CheckP0_DOWN:
 	lda #_DOWN 		;?,??	; player0 joystick down
 	bit SWCHA
-	bne CheckP0_LEFT 	;?,??	; If bit pattern doesn't match, bypass #_DOWN Block
-	lda #_YAR_S		;?,??	; set Yar glpyh
-	sta YarAnimOffset	;?,??	; 	to South Facing
-	lda #6			;?,??	; Yar can't 
-	clc			;?,??	; fly below
-	cmp YarYPos		;?,??	; 	the deck
-	bpl CheckP0_LEFT 	;?,??	; skip decrement if he tries to 
-	dec YarYPos	
+	bne CheckP0_LEFT	 	;?,??	; If bit pattern doesn't match, bypass #_DOWN Block
+	;lda #6			;?,??	; Yar can't 
+	;clc			;?,??	; fly below
+	;cmp YarYPos		;?,??	; 	the deck
+	;bpl CheckFire 	;?,??	; skip decrement if he tries to 
+	dec YarYPos
+CheckP0_DOWN_LEFT:
+	lda #_LEFT
+        bit SWCHA
+        bne CheckP0_DOWN_RIGHT
+        ldy #_YAR_SW
+        sty YarAnimOffset
+        dec YarXPos
+       	lda #_DONT_REFLECT			;?,??	; reflect		
+	STA REFP0
+        jmp CheckFire
+CheckP0_DOWN_RIGHT:
+	lda #_RIGHT
+        bit SWCHA
+        bne P0_DOWN
+        ldy #_YAR_SW
+        sty YarAnimOffset
+        inc YarXPos
+       	lda #_REFLECT			;?,??	; reflect		
+	STA REFP0
+        jmp CheckFire
+P0_DOWN:	
+        ldy #_YAR_S		;?,??	; set Yar glpyh
+	sty YarAnimOffset	;?,??	; 	to South Facing	
+        jmp CheckFire
+        
 CheckP0_LEFT:
 	lda #_LEFT		;?,??	; player0 joystick left
 	bit SWCHA
@@ -308,8 +360,9 @@ CheckP0_LEFT:
 	dec YarXPos	
 	lda #_YAR_W		;?,??	; set Yar glpyh
 	sta YarAnimOffset	;?,??	; 	to North Facing
-	lda 0			;?,??	; reflect		
-	STA REFP0		;?,??	; player 0
+	lda #_DONT_REFLECT	;?,??	; reflect		
+	STA REFP0
+        jmp CheckFire   ;?,??	; player 0
 CheckP0_RIGHT:
 	lda #_RIGHT 		;?,??	; player0 joystick right
 	bit SWCHA
@@ -317,8 +370,9 @@ CheckP0_RIGHT:
 	inc YarXPos
 	lda #_YAR_W		;?,??	; set Yar glpyh
 	sta YarAnimOffset	;?,??	; 	to North Facing
-	lda 8			;?,??	; reflect		
+	lda #_REFLECT		;?,??	; reflect		
 	STA REFP0		;?,??	; player 0
+
 CheckFire:
 	lda #_INPT4_FIRED	;?,??	; check if the Fire
 	bit INPT4		;?,??	; 	button is pressed
@@ -612,22 +666,22 @@ _YAR_Sprite:
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;Yar bitpatterns courtesy of Dennis Debro, dissasembly of Scott H. Warsaw code
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;_YAR_N
+;_YAR_S
 	.byte $00 ; |........|
 	.byte $24 ; |..X..X..|
 	.byte $18 ; |...XX...|
 	.byte $24 ; |..X..X..|
 	.byte $24 ; |..X..X..|
-	.byte $7E ; |.XXXXXX.|
+	.byte $7E ; |.XXXXXX.| 	;NOTE: DATA APPEARS UPSIDEDOWN WRT RUNTIME!
 	.byte $5A ; |.X.XX.X.|
 	.byte $DB ; |XX.XX.XX|
 	.byte $3C ; |..XXXX..|
-;_YAR_S				;+9
-	.byte $00 ; |........|	;
+;_YAR_N				;+9
+	.byte $00 ; |........|
 	.byte $3C ; |..XXXX..|
 	.byte $DB ; |XX.XX.XX|
 	.byte $5A ; |.X.XX.X.|
-	.byte $7E ; |.XXXXXX.|
+	.byte $7E ; |.XXXXXX.| 	;NOTE: DATA APPEARS UPSIDEDOWN WRT RUNTIME!
 	.byte $24 ; |..X..X..|
 	.byte $24 ; |..X..X..|
 	.byte $18 ; |...XX...|
@@ -642,51 +696,26 @@ _YAR_Sprite:
 	.byte $99 ; |X..XX..X|
 	.byte $0E ; |....XXX.|
 	.byte $02 ; |......X.|
-;_YAR_NW					;+27
+;_YAR_SW			;+27
 	.byte $00 ; |........|
 	.byte $20 ; |..X.....|
 	.byte $30 ; |..XX....|
 	.byte $ED ; |XXX.XX.X|
-	.byte $47 ; |.X...XXX|
+	.byte $47 ; |.X...XXX| 	;NOTE: DATA APPEARS UPSIDEDOWN WRT RUNTIME!
 	.byte $2C ; |..X.XX..|
 	.byte $3F ; |..XXXXXX|
 	.byte $17 ; |...X.XXX|
 	.byte $36 ; |..XX.XX.|
-;_YAR_SW 			;+36
+;_YAR_NW			;+36
 	.byte $00 ; |........|
 	.byte $36 ; |..XX.XX.|
 	.byte $17 ; |...X.XXX|
 	.byte $3F ; |..XXXXXX|
-	.byte $2C ; |..X.XX..|
+	.byte $2C ; |..X.XX..|	;NOTE: DATA APPEARS UPSIDEDOWN WRT RUNTIME!
 	.byte $47 ; |.X...XXX|
 	.byte $ED ; |XXX.XX.X|
 	.byte $30 ; |..XX....|
 	.byte $20 ; |..X.....|
-;original graphics
-;YarHover
-	.byte $00 ; |........|
-	.byte $00 ; |	     |
-	.byte $24 ; |  X  X  |
-	.byte $99 ; |X  XX  X|
-	.byte $BD ; |X XXXX X|	
-	.byte $A5 ; |X X  X X|
-	.byte $7E ; | XXXXXX |
-	.byte $18 ; |	XX   |
-	.byte $FF ; |XXXXXXXX|
-	.byte $DB ; |XX XX XX|
-	.byte $18 ; |	XX   |
-;YarHover_
-	.byte $00 ; |........|
-	.byte $24 ; |..X..X..|
-	.byte $99 ; |X..XX..X|
-	.byte $A5 ; |X.X..X.X|
-	.byte $E7 ; |XXX..XXX|
-	.byte $18 ; |...XX...|
-	.byte $18 ; |...XX...|
-	.byte $18 ; |...XX...|
-	.byte $3C ; |..XXXX..|
-	
-
 
 QuotileSprite
 Quotile_0	
